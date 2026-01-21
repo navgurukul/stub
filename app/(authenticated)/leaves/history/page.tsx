@@ -21,6 +21,9 @@ import { toast } from "sonner";
 import { LeaveTable } from "./_components/LeaveTable";
 import { DataTable } from "./_components/data-table";
 import { columns } from "./_components/columns";
+import { Button } from "@/components/ui/button";
+import { useRole } from "@/hooks/use-role";
+import { ROLES } from "@/lib/rbac-constants";
 
 // TypeScript interfaces for API response
 interface LeaveRequest {
@@ -50,11 +53,14 @@ interface LeaveRequest {
 
 export default function LeaveHistoryPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
   const [leaveHistory, setLeaveHistory] = useState<LeaveRequest[]>([]);
   const [teamLeaveHistory, setTeamLeaveHistory] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isTeamLoading, setIsTeamLoading] = useState(true);
   const [mainTab, setMainTab] = useState<string>("my-leaves");
+  // Allow admins/super-admins to export all special leaves
+  const isAdmin = useRole([ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
   // Generic fetch function for leave requests
   const fetchLeaveData = useCallback(
@@ -107,6 +113,97 @@ export default function LeaveHistoryPage() {
       setIsTeamLoading
     );
   }, [fetchLeaveData]);
+
+  // Export special leaves CSV
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const endpoint = isAdmin
+        ? API_PATHS.LEAVES_TEAM_REQUESTS_GET
+        : API_PATHS.LEAVES_REQUESTS_GET;
+
+      const response = await apiClient.get(endpoint);
+      const data = Array.isArray(response.data) ? response.data : [];
+
+      // Exclude Wellness Leave and Casual Leave
+      const excluded = ["Wellness Leave", "Casual Leave"];
+
+      let records = data.filter((rec: any) => !excluded.includes(rec.leaveType?.name));
+
+      // Filter by selected month if applicable
+      if (selectedMonth !== "all") {
+        records = records.filter((rec: any) => {
+          try {
+            return format(parseISO(rec.startDate), "yyyy-MM") === selectedMonth;
+          } catch (e) {
+            return false;
+          }
+        });
+      }
+
+      if (!records.length) {
+        toast("No special leaves found for the selected filters.");
+        return;
+      }
+
+      const rows: string[][] = [];
+      rows.push([
+        "Employee Name",
+        "Leave Type",
+        "Leave Dates",
+        "Category",
+        "Reason",
+        "Approval Status",
+        "Approver Name",
+        "Approval Date",
+      ]);
+
+      records.forEach((rec: any) => {
+        const employeeName = rec.user?.name ?? "";
+        const leaveType = rec.leaveType?.name ?? "";
+        const start = rec.startDate ? format(parseISO(rec.startDate), "yyyy-MM-dd") : "";
+        const end = rec.endDate ? format(parseISO(rec.endDate), "yyyy-MM-dd") : "";
+        const leaveDates = start && end ? (start === end ? start : `${start} to ${end}`) : start || end || "";
+        const category = rec.leaveType?.code ?? "";
+        const reason = (rec.reason ?? "").replace(/\r?\n/g, " ");
+        const approvalStatus = rec.state === "approved" ? "Approved" : rec.state === "rejected" ? "Rejected" : "Pending";
+        const approverName = rec.decidedBy?.name ?? rec.decidedByName ?? "";
+        const approvalDate = rec.updatedAt && rec.state !== "pending" ? format(parseISO(rec.updatedAt), "yyyy-MM-dd") : "";
+
+        rows.push([
+          employeeName,
+          leaveType,
+          leaveDates,
+          category,
+          reason,
+          approvalStatus,
+          approverName,
+          approvalDate,
+        ]);
+      });
+      const csv = rows
+        .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const fileName = `special-leaves-${selectedMonth === "all" ? "all" : selectedMonth}.csv`;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      toast.success("Special leaves exported");
+    } catch (error) {
+      console.error("Export failed", error);
+      toast.error("Failed to export special leaves. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isAdmin, selectedMonth]);
 
   // Generate month options from both leave history and team leave history data
   const monthOptions = useMemo(() => {
@@ -209,6 +306,14 @@ export default function LeaveHistoryPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <div className="mt-2">
+                  <Button
+                    onClick={() => handleExport()}
+                    disabled={isExporting}
+                  >
+                    Special Leaves Export
+                  </Button>
+                </div>
               </div>
             </div>
           </CardHeader>
