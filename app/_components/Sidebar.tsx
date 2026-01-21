@@ -166,8 +166,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 href="/"
                 className="grid flex-1 text-left text-sm leading-tight"
               >
-                <h1 className="truncate font-heading">NavTrack</h1>
-                <span className="truncate text-xs">Daily Activity Logger</span>
+                <h1 className="truncate font-heading">S.T.U.B</h1>
+                <span className="truncate text-xs">Simple Tracking Until Better</span>
               </Link>
             </div>
           </SidebarMenuItem>

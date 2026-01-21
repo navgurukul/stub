@@ -56,7 +56,7 @@ export default function LoginPage() {
           <PageHeader>
             <div className="flex items-center gap-2 justify-center">
               <Command className="size-10 text-main" />
-              <PageHeading>NavTrack</PageHeading>
+              <PageHeading>S.T.U.B</PageHeading>
             </div>
             <PageDescription>
               Sign in with your Google account to get started.
