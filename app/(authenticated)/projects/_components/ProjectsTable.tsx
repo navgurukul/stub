@@ -70,11 +70,11 @@ export function ProjectsTable({ projects,onEditProject }: ProjectsTableProps) {
             <TableCell>{project.name}</TableCell>
             <TableCell>{project.projectManager?.email || "-"}</TableCell>
             <TableCell>
-              {project.budgetAmount && project.budgetCurrency
-                ? `${project.budgetCurrency} ${parseFloat(
-                    project.budgetAmount
-                  ).toLocaleString()}`
-                : "-"}
+              {project.budgetCurrency && (project.budgetAmount ?? project.budgetAmountMinor) ? (
+                `${project.budgetCurrency} ${project.budgetAmount ?? project.budgetAmountMinor}`
+              ) : (
+                "-"
+              )}
             </TableCell>
             <TableCell>
               <Badge

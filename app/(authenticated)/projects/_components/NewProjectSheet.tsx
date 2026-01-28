@@ -63,14 +63,14 @@ const PROJECT_STATUS_OPTIONS = [
 const formSchema = z
   .object({
     name: z.string().min(3, "Project name must be at least 3 characters"),
-    code: z.string().min(2, "Project code must be at least 2 characters"),
     status: z.string().min(1, "Please select a project status"),
     departmentId: z.number().int().positive("Please select a department"),
     projectManagerId: z
       .number()
       .int()
       .positive("Please select a project manager"),
-    startDate: z.date({ message: "Start date is required" }),
+    // allow startDate to be empty when user doesn't pick a date
+    startDate: z.date().optional(),
     endDate: z.date().optional(),
     budgetAmount: z
       .number()
@@ -129,7 +129,6 @@ export function NewProjectSheet({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      code: "",
       status: "active",
       departmentId: undefined,
       projectManagerId: undefined,
@@ -223,17 +222,22 @@ export function NewProjectSheet({
       const payload = {
         orgId: user.orgId,
         name: values.name,
-        code: values.code,
+        // backend still validates `code`. send a derived string from name (max 50 chars)
+        code: values.name ? String(values.name).trim().slice(0, 50) : undefined,
         status: values.status,
         departmentId: values.departmentId,
         projectManagerId: values.projectManagerId,
-        startDate: format(values.startDate, DATE_FORMATS.API),
+        startDate: values.startDate
+          ? format(values.startDate, DATE_FORMATS.API)
+          : undefined,
         endDate: values.endDate
           ? format(values.endDate, DATE_FORMATS.API)
           : undefined,
         budgetCurrency: "INR",
-        budgetAmount: values.budgetAmount || 0,
-        slackChannelId: values.slackChannelId || undefined,
+        budgetAmountMinor:
+          values.budgetAmount !== undefined && values.budgetAmount !== null
+            ? values.budgetAmount
+            : undefined,
       };
 
       const response = await apiClient.post(API_PATHS.PROJECTS, payload);
