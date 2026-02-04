@@ -34,6 +34,17 @@ export default function ProjectManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  const handleEditProject = (projectId: string) => {
+    console.log("Edit project clicked:", projectId);
+    const project = projects.find((p) => String(p.id) === String(projectId)) || null;
+    if (!project) {
+      console.warn("Project not found in current list, opening empty form");
+    }
+    setEditingProject(project);
+    setIsSheetOpen(true);
+  };
 
   // Fetch projects from API
   useEffect(() => {
@@ -140,7 +151,12 @@ export default function ProjectManagementPage() {
                     Manage and organize all projects in your organization
                   </CardDescription>
                 </div>
-                <Button onClick={() => setIsSheetOpen(true)}>
+                <Button
+                  onClick={() => {
+                    setEditingProject(null);
+                    setIsSheetOpen(true);
+                  }}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   New Project
                 </Button>
@@ -166,7 +182,7 @@ export default function ProjectManagementPage() {
                   ) : projects.length === 0 ? (
                     <EmptyState />
                   ) : (
-                    <ProjectsTable projects={projects} />
+                    <ProjectsTable projects={projects} onEditProject={handleEditProject} />
                   )}
                 </div>
 
@@ -184,8 +200,15 @@ export default function ProjectManagementPage() {
 
         <NewProjectSheet
           open={isSheetOpen}
-          onOpenChange={setIsSheetOpen}
-          onSuccess={handleProjectCreated}
+          initialProject={editingProject}
+          onOpenChange={(open) => {
+            setIsSheetOpen(open);
+            if (!open) setEditingProject(null);
+          }}
+          onSuccess={() => {
+            handleProjectCreated();
+            setEditingProject(null);
+          }}
         />
       </PageWrapper>
     </RoleProtectedRoute>
