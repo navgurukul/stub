@@ -43,6 +43,8 @@ import { toast } from "sonner";
 import { API_PATHS, DATE_FORMATS, VALIDATION } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { isNonWorkingDay } from "@/lib/leave-timesheet-validator";
+import { useRole } from "@/hooks/use-role";
+import { ROLES } from "@/lib/rbac-constants";
 
 const formSchema = z.object({
   userId: z.number().int().positive("Please select a valid employee."),
@@ -82,6 +84,9 @@ export function CompOffRequestForm() {
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
   const [holidayDates, setHolidayDates] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+
+  const isAdminOrSuper = useRole([ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+  const isManager = useRole(ROLES.MANAGER);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -171,17 +176,88 @@ export function CompOffRequestForm() {
 
       setIsLoadingEmployees(true);
       try {
-        const response = await apiClient.get(
-          `${API_PATHS.EMPLOYEES}?managerId=${user.id}`
-        );
+        const fetchAllPages = async (extraParams: Record<string, any> = {}) => {
+          let page = 1;
+          const accumulated: any[] = [];
 
-        if (response.data && Array.isArray(response.data.data)) {
-          const employeeList = response.data.data.map((emp: any) => ({
+          while (true) {
+            const response = await apiClient.get(API_PATHS.EMPLOYEES, {
+              params: { ...extraParams, page },
+            });
+
+            const pageData = response.data?.data || [];
+            accumulated.push(...pageData);
+
+            const total = response.data?.total ?? response.data?.data?.total;
+            const limit = response.data?.limit ?? response.data?.data?.limit;
+
+            // If API doesn't provide pagination meta, break after first page
+            if (!total || !limit) break;
+
+            if (accumulated.length >= total) break;
+            page += 1;
+          }
+
+          return accumulated;
+        };
+        const trySingleRequest = async (extraParams: Record<string, any> = {}) => {
+          try {
+            const respAll = await apiClient.get(API_PATHS.EMPLOYEES, {
+              params: { ...extraParams, all: true },
+            });
+            if (respAll.data && Array.isArray(respAll.data.data)) {
+              const count = respAll.data.data.length;
+              const total = respAll.data.total ?? respAll.data.data?.total ?? count;
+              if (count >= total) return respAll.data.data;
+
+            }
+          } catch (e) {
+          }
+
+          try {
+            const resp = await apiClient.get(API_PATHS.EMPLOYEES, {
+              params: { ...extraParams, page: 1, limit: 10000 },
+            });
+
+            const list = resp.data?.data || [];
+            const total = resp.data?.total ?? resp.data?.data?.total ?? list.length;
+
+            if (list.length >= total) {
+              return list;
+            }
+          } catch (e) {
+          }
+
+        
+          return await fetchAllPages(extraParams);
+        };
+
+        if (isAdminOrSuper) {
+          const allUsers = await trySingleRequest();
+          const employeeList = (allUsers || []).map((emp: any) => ({
             id: emp.id,
             name: emp.name,
             email: emp.email,
           }));
           setEmployees(employeeList);
+        } else if (isManager) {
+          const allUsers = await trySingleRequest({ managerId: user.id });
+          const employeeList = (allUsers || []).map((emp: any) => ({
+            id: emp.id,
+            name: emp.name,
+            email: emp.email,
+          }));
+          setEmployees(employeeList);
+        } else {
+          // Regular employee: only themselves
+          const self = {
+            id: user.id,
+            name: user.name || user.email,
+            email: user.email,
+          };
+          setEmployees([self]);
+          // Preselect the current user and disable changing
+          form.setValue("userId", user.id);
         }
       } catch (error: any) {
         console.error("Error fetching employees:", error);
@@ -194,7 +270,7 @@ export function CompOffRequestForm() {
     }
 
     fetchEmployees();
-  }, [user?.id]);
+  }, [user?.id, isAdminOrSuper, isManager]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -271,7 +347,8 @@ export function CompOffRequestForm() {
                     <Select
                       onValueChange={(value) => field.onChange(parseInt(value))}
                       value={field.value?.toString()}
-                      disabled={isLoadingEmployees}
+                      // Disable selection for regular employees (they can only request for themselves).
+                      disabled={isLoadingEmployees || (!isAdminOrSuper && !isManager)}
                     >
                       <FormControl>
                         <SelectTrigger>
