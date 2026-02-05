@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils";
 import apiClient from "@/lib/api-client";
 import { API_PATHS, DATE_FORMATS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
+import type { Project } from "./ProjectsTable";
 
 const PROJECT_STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -108,12 +109,14 @@ interface NewProjectSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  initialProject?: Partial<Project> | null;
 }
 
 export function NewProjectSheet({
   open,
   onOpenChange,
   onSuccess,
+  initialProject,
 }: NewProjectSheetProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -207,12 +210,44 @@ export function NewProjectSheet({
 
     return () => clearTimeout(timeoutId);
   }, [open, managerSearchValue, user?.orgId]);
+  useEffect(() => {
+    if (!open) return;
+    if (initialProject) {
+      form.reset({
+        name: initialProject.name || "",
+        status: (initialProject.status as string) || "active",
+        departmentId: (initialProject.department?.id as number) || undefined,
+        projectManagerId: (initialProject.projectManager?.id as number) || undefined,
+        startDate: initialProject.startDate ? new Date(initialProject.startDate as string) : undefined,
+        endDate: initialProject.endDate ? new Date(initialProject.endDate as string) : undefined,
+        budgetAmount:
+          (initialProject.budgetAmountMinor as any) !== undefined
+            ? (initialProject.budgetAmountMinor as any)
+            : (initialProject.budgetAmount as any) || 0,
+        slackChannelId: (initialProject as any).slackChannelId || "",
+      });
+
+      setSelectedManagerName(initialProject.projectManager?.name || "");
+    } else {
+      form.reset({
+        name: "",
+        status: "active",
+        departmentId: undefined,
+        projectManagerId: undefined,
+        startDate: undefined,
+        endDate: undefined,
+        budgetAmount: 0,
+        slackChannelId: "",
+      });
+      setSelectedManagerName("");
+    }
+  }, [open, initialProject]);
+
+  const isEditing = initialProject?.id !== undefined && initialProject?.id !== null;
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user?.orgId) {
-      toast.error("Organization ID not found", {
-        description: "Please sign in again or contact admin.",
-      });
+      toast.error("Organization ID not found. Please sign in again.");
       return;
     }
 
@@ -222,49 +257,37 @@ export function NewProjectSheet({
       const payload = {
         orgId: user.orgId,
         name: values.name,
-        // backend still validates `code`. send a derived string from name (max 50 chars)
         code: values.name ? String(values.name).trim().slice(0, 50) : undefined,
         status: values.status,
         departmentId: values.departmentId,
         projectManagerId: values.projectManagerId,
-        startDate: values.startDate
-          ? format(values.startDate, DATE_FORMATS.API)
-          : undefined,
-        endDate: values.endDate
-          ? format(values.endDate, DATE_FORMATS.API)
-          : undefined,
+        startDate: values.startDate ? format(values.startDate, DATE_FORMATS.API) : undefined,
+        endDate: values.endDate ? format(values.endDate, DATE_FORMATS.API) : undefined,
         budgetCurrency: "INR",
-        budgetAmountMinor:
-          values.budgetAmount !== undefined && values.budgetAmount !== null
-            ? values.budgetAmount
-            : undefined,
+        budgetAmountMinor: values.budgetAmount !== undefined && values.budgetAmount !== null ? values.budgetAmount : undefined,
       };
 
-      const response = await apiClient.post(API_PATHS.PROJECTS, payload);
+      let response;
+      if (isEditing) {
+        // Use PATCH to update
+        response = await apiClient.patch(`${API_PATHS.PROJECTS}/${initialProject?.id}`, payload);
+      } else {
+        // Create
+        response = await apiClient.post(API_PATHS.PROJECTS, payload);
+      }
 
-      if (response.status === 200 || response.status === 201) {
-        toast.success("Project created successfully!", {
-          description: "The new project has been added to your organization.",
+      if (response && (response.status === 200 || response.status === 201 || response.status === 204)) {
+        toast.success(isEditing ? "Project updated successfully!" : "Project created successfully!", {
+          description: isEditing ? "The project has been updated." : "The new project has been added to your organization.",
         });
 
         form.reset();
         onOpenChange(false);
-
-        if (onSuccess) {
-          onSuccess();
-        }
+        if (onSuccess) onSuccess();
       }
     } catch (error: any) {
-      console.error("Error creating project:", error);
-
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to create project. Please try again.";
-
-      toast.error("Creation failed", {
-        description: errorMessage,
-      });
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create/update project. Please try again.";
+      toast.error(isEditing ? "Update failed" : "Creation failed", { description: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -274,10 +297,9 @@ export function NewProjectSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Create New Project</SheetTitle>
+          <SheetTitle>{isEditing ? "Edit Project" : "Create New Project"}</SheetTitle>
           <SheetDescription>
-            Add a new project to your organization. Fill in the required details
-            below.
+            {isEditing ? "Modify project details and save the changes." : "Add a new project to your organization. Fill in the required details below."}
           </SheetDescription>
         </SheetHeader>
 
@@ -394,14 +416,6 @@ export function NewProjectSheet({
                                 "w-full justify-between font-normal",
                                 !field.value && "text-muted-foreground"
                               )}
-                              onClick={() =>
-                                console.log(
-                                  field.value,
-                                  managers.find(
-                                    (manager) => manager.id === field.value
-                                  )?.name
-                                )
-                              }
                             >
                               {field.value
                                 ? selectedManagerName
@@ -521,10 +535,10 @@ export function NewProjectSheet({
             Cancel
           </Button>
           <Button type="submit" form="new-project-form" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Project"}
+            {isSubmitting ? (isEditing ? "Saving..." : "Creating...") : isEditing ? "Save Changes" : "Create Project"}
           </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
-}
+   );
+ }
