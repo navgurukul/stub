@@ -24,22 +24,23 @@
 }
 
 .dark {
-  --background: oklch(29.23% 0.0626 270.49);
-  --secondary-background: oklch(23.93% 0 0);
-  --foreground: oklch(92.49% 0 0);
-  --main-foreground: oklch(0% 0 0);
-  --main: oklch(67.47% 0.1726 259.49);
-  --subtle: oklch(0.675 0.0521 259.49);
-  --border: oklch(0% 0 0);
-  --ring: oklch(100% 0 0);
-  --shadow: 4px 4px 0px 0px var(--border);
-  --chart-1: #5294FF;
-  --chart-2: #FF6669;
-  --chart-3: #E0B700;
-  --chart-4: #04C86D;
-  --chart-5: #7A83FF;
-  --chart-active-dot: #fff;
-}
+  --background:oklch(20% 0.03 260);
+  --secondary-background:oklch(23% 0.02 260);
+  --foreground: oklch(95% 0 0);
+  --main-foreground: oklch(100% 0 0);
+  --main:  oklch(70% 0.17 259);
+  --subtle: oklch(80% 0.07 259);
+  --subtle-background: oklch(35% 0.04 260); 
+  --border: oklch(35% 0 0);
+  --ring: oklch(85% 0 0);
+  --shadow:  0px 0px 12px oklch(0% 0 0 / 0.4);
+  --chart-1: #6CA8FF;
+  --chart-2: #FF7A7C;
+  --chart-3: #FFD644;
+  --chart-4: #26E68A;
+  --chart-5: #8B93FF;
+  --chart-active-dot: #ffffff;
+} 
 
 @theme inline {
   --color-main: var(--main);
