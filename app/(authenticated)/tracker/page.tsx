@@ -568,9 +568,24 @@ if (d.getTime() > today.getTime()) return true;
                                   max={VALIDATION.MAX_HOURS_PER_ENTRY}
                                   placeholder="0.0"
                                   {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseFloat(e.target.value))
+                                  value={
+                                    field.value === undefined || field.value === null
+                                      ? ""
+                                      : typeof field.value === "number"
+                                      ? String(field.value)
+                                      : field.value
                                   }
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    const cleaned = raw.replace(/[^\d.]/g, "");
+                                    const parts = cleaned.split(".");
+                                    const intPart = parts[0].slice(0, 2);
+                                    const fracPart = parts[1] ? parts[1].slice(0, 2) : undefined;
+                                    const normalized =
+                                      fracPart !== undefined ? `${intPart}.${fracPart}` : intPart;
+                                    const num = normalized === "" ? 0 : parseFloat(normalized);
+                                    field.onChange(Number.isFinite(num) ? num : 0);
+                                  }}
                                 />
                               </FormControl>
                               {/* <FormDescription>

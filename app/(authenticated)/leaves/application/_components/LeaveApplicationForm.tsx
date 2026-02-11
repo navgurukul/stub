@@ -60,6 +60,7 @@ interface LeaveTypeResponse {
   requiresApproval: boolean;
   description?: string;
   maxPerRequestHours?: number;
+  balanceHours?: number;
 }
 
 const formSchema = z
@@ -118,19 +119,12 @@ export function LeaveApplicationForm({
   const [selectedDurationType, setSelectedDurationType] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // Matcher function to disable non-working days in calendar
-  // const disableNonWorkingDays = (date: Date) => {
-  //   return isNonWorkingDay(date);
-  // };
-
-  // Combined disabled matcher for range calendar
+  // Calendar disabled matcher: only block extremely old dates (optional).
+  // Removed non-working-day logic so users can pick any date.
   const disabledDates = (date: Date) => {
-    // Disable future dates
-    // if (date > new Date()) return true;
-    // Disable dates before 1900
+    // Disable dates before 1900 as a sanity guard
     if (date < new Date("1900-01-01")) return true;
-    // Disable non-working days
-    return isNonWorkingDay(date);
+    return false;
   };
 
   useEffect(() => {
@@ -138,15 +132,40 @@ export function LeaveApplicationForm({
 
     async function fetchLeaveTypes() {
       try {
-        const res = await apiClient.get(API_PATHS.LEAVES_TYPES);
-        const types = Array.isArray(res.data) ? res.data : [];
+        const res = await apiClient.get(API_PATHS.LEAVES_BALANCES);
+        const balances = Array.isArray(res.data?.balances)
+          ? res.data.balances
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+        const filtered = balances
+          .filter((b: any) => (b.balanceHours ?? 0) > 0)
+          .map((b: any) => {
+            const lt = b.leaveType || {};
+            return {
+              id: lt.id ?? b.leaveTypeId,
+              code: lt.code,
+              name: lt.name,
+              paid: lt.paid,
+              requiresApproval: lt.requiresApproval,
+              description: lt.description,
+              maxPerRequestHours: lt.maxPerRequestHours,
+              balanceHours: b.balanceHours,
+            } as LeaveTypeResponse;
+          });
+
         if (isMounted) {
-          setLeaveTypes(types);
+          setLeaveTypes(filtered);
         }
       } catch (error) {
-        console.error("Error fetching leave types:", error);
-        // Fallback to empty array if API fails
-        setLeaveTypes([]);
+        try {
+          const res2 = await apiClient.get(API_PATHS.LEAVES_TYPES);
+          const types = Array.isArray(res2.data) ? res2.data : [];
+          if (isMounted) setLeaveTypes(types);
+        } catch (err) {
+          console.error("Error fetching leave types/balances:", error, err);
+          if (isMounted) setLeaveTypes([]);
+        }
       }
     }
 
