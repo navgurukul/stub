@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format, parseISO, getYear, getMonth } from "date-fns";
 import { toast } from "sonner";
 
@@ -63,12 +63,14 @@ export default function DashboardPage() {
     useState<MonthlyTimesheetResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchIdRef = useRef(0);
 
   // Fetch monthly timesheet data
   useEffect(() => {
     if (authLoading) return;
 
     const fetchMonthlyData = async () => {
+      const id = ++fetchIdRef.current; // unique id for this run
       setIsLoading(true);
       setError(null);
 
@@ -79,65 +81,86 @@ export default function DashboardPage() {
       const visibleStart = startOfWeek(monthStart, { weekStartsOn: 0 });
       const visibleEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
 
-      const monthsNeeded = new Set<string>();
-      monthsNeeded.add(format(currentMonth, "yyyy-MM"));
-
-      if (visibleStart.getMonth() !== currentMonth.getMonth()) {
-        monthsNeeded.add(format(visibleStart, "yyyy-MM"));
-      }
-      if (visibleEnd.getMonth() !== currentMonth.getMonth()) {
-        monthsNeeded.add(format(visibleEnd, "yyyy-MM"));
-      }
-
-    
-      const allDays: DayData[] = [];
-      let mainMonthTotals = { timesheetHours: 0, leaveHours: 0 };
-
-      for (const key of monthsNeeded) {
-        const [year, month] = key.split("-").map(Number);
-
-        const res = await apiClient.get(API_PATHS.MONTHLY_TIMESHEET, {
-          params: { year, month },
-        });
-
-        allDays.push(...res.data.days);
-
-        if (
-          year === getYear(currentMonth) &&
-          month === getMonth(currentMonth) + 1
-        ) {
-          mainMonthTotals = res.data.totals;
+      const getPeriodKey = (d: Date) => {
+        const dt = new Date(d);
+        let year = dt.getFullYear();
+        let monthIndex = dt.getMonth();
+        if (dt.getDate() < 26) {
+          monthIndex -= 1;
+          if (monthIndex < 0) {
+            monthIndex = 11;
+            year -= 1;
+          }
         }
-      }
-
-
-      const finalDays = Array.from(
-        new Map(allDays.map((d) => [d.date, d])).values()
-      );
-      const visibleDays = finalDays.filter((d) => {
-        const dt = parseISO(d.date);
-        return dt >= visibleStart && dt <= visibleEnd;
-      });
-      const combined: MonthlyTimesheetResponse = {
-        user:
-          monthlyData?.user || {
-            id: 0,
-            name: "",
-            departmentId: 0,
-          },
-        period: {
-          year: getYear(currentMonth),
-          month: getMonth(currentMonth) + 1,
-          start: format(visibleStart, DATE_FORMATS.API),
-          end: format(visibleEnd, DATE_FORMATS.API),
-        },
-        totals: mainMonthTotals,
-        days: visibleDays,
+        const month = monthIndex + 1;
+        return `${year}-${String(month).padStart(2, "0")}`;
       };
 
+      // parse "YYYY-MM" period key back into numeric year & month (month is 1-based)
+      const parsePeriodKey = (key: string) => {
+        const [y, m] = key.split("-").map((v) => Number(v));
+        return { year: y, month: m };
+      };
+
+      const monthsNeeded = new Set<string>();
+      monthsNeeded.add(getPeriodKey(currentMonth));
+      // prune any empty values safely (avoid mutating while iterating the Set)
+      for (const m of Array.from(monthsNeeded)) {
+        if (!m) monthsNeeded.delete(m);
+      }
+ 
+     
+       const allDays: DayData[] = [];
+       let mainMonthTotals = { timesheetHours: 0, leaveHours: 0 };
+ 
+        // iterate unique months only once
+        const periodKeys = Array.from(monthsNeeded);
+        for (const key of periodKeys) {
+          // if another fetch started, abort this one
+          if (id !== fetchIdRef.current) return;
+
+          const { year, month } = parsePeriodKey(key);
+          await apiClient.get(API_PATHS.MONTHLY_TIMESHEET, {
+            params: { year, month },
+          }).then((res) => {
+            allDays.push(...res.data.days);
+            if (key === getPeriodKey(currentMonth)) mainMonthTotals = res.data.totals;
+          });
+        }
+
+        if (id !== fetchIdRef.current) return;
+        // Build the combined MonthlyTimesheetResponse from fetched period data
+        const finalDays = Array.from(
+          new Map(allDays.map((d) => [d.date, d])).values()
+        );
+        const visibleDays = finalDays.filter((d) => {
+          const dt = parseISO(d.date);
+          return dt >= visibleStart && dt <= visibleEnd;
+        });
+        const { year: periodYear, month: periodMonth } = parsePeriodKey(
+          getPeriodKey(currentMonth)
+        );
+        const combined: MonthlyTimesheetResponse = {
+          user:
+            monthlyData?.user || {
+              id: 0,
+              name: "",
+              departmentId: 0,
+            },
+          period: {
+            year: periodYear,
+            month: periodMonth,
+            start: format(visibleStart, DATE_FORMATS.API),
+            end: format(visibleEnd, DATE_FORMATS.API),
+          },
+          totals: mainMonthTotals,
+          days: visibleDays,
+        };
++
         setMonthlyData(combined);
 
       } catch (err: unknown) {
+        if (id !== fetchIdRef.current) return;
         console.error("Error fetching monthly data:", err);
         const error = err as {
           response?: { data?: { message?: string } };
@@ -152,6 +175,7 @@ export default function DashboardPage() {
           description: errorMessage,
         });
       } finally {
+        if (id !== fetchIdRef.current) return;
         setIsLoading(false);
       }
     };
