@@ -79,6 +79,7 @@ const formSchema = z
       .nonnegative("Budget must be non-negative")
       .optional(),
     slackChannelId: z.string().optional(),
+    discordChannelId: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -139,6 +140,7 @@ export function NewProjectSheet({
       endDate: undefined,
       budgetAmount: 0,
       slackChannelId: "",
+      discordChannelId: "",
     },
   });
 
@@ -225,6 +227,7 @@ export function NewProjectSheet({
             ? (initialProject.budgetAmountMinor as any)
             : (initialProject.budgetAmount as any) || 0,
         slackChannelId: (initialProject as any).slackChannelId || "",
+        discordChannelId: (initialProject as any).discordChannelId || "",
       });
 
       setSelectedManagerName(initialProject.projectManager?.name || "");
@@ -238,6 +241,7 @@ export function NewProjectSheet({
         endDate: undefined,
         budgetAmount: 0,
         slackChannelId: "",
+        discordChannelId: "",
       });
       setSelectedManagerName("");
     }
@@ -265,6 +269,8 @@ export function NewProjectSheet({
         endDate: values.endDate ? format(values.endDate, DATE_FORMATS.API) : undefined,
         budgetCurrency: "INR",
         budgetAmountMinor: values.budgetAmount !== undefined && values.budgetAmount !== null ? values.budgetAmount : undefined,
+        slackChannelId: values.slackChannelId || undefined,
+        discordChannelId: values.discordChannelId || undefined,
       };
 
       let response;
@@ -515,6 +521,26 @@ export function NewProjectSheet({
                       </FormControl>
                       <FormDescription>
                         Link this project to a Slack channel
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="discordChannelId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discord Channel ID (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter Discord channel ID"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Link this project to a Discord channel
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

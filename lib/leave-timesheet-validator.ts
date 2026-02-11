@@ -297,43 +297,13 @@ export async function checkLeaveConflictWithTimesheet(
       return overlapResult;
     }
 
-    // SECOND: Check for non-working days and holidays in the date range
-    const currentDate = new Date(startDate);
-    const end = new Date(endDate);
-
-    while (currentDate <= end) {
-      // Check if it's a non-working day (Sunday or 2nd/4th Saturday)
-      if (isNonWorkingDay(currentDate)) {
-        return {
-          hasConflict: true,
-          conflictType: "non_working_day",
-          message: `Cannot apply leave for ${format(
-            currentDate,
-            DATE_FORMATS.DISPLAY
-          )}. This is a non-working day (${
-            currentDate.getDay() === 0 ? "Sunday" : "2nd/4th Saturday"
-          }). Please select only working days for your leave application.`,
-        };
-      }
-
-      // Check if it's a holiday
-      const isHol = await isHoliday(currentDate);
-      if (isHol) {
-        return {
-          hasConflict: true,
-          conflictType: "holiday",
-          message: `Cannot apply leave for ${format(
-            currentDate,
-            DATE_FORMATS.DISPLAY
-          )}. This date is marked as a holiday. Please exclude holidays from your leave application.`,
-        };
-      }
-
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+    // NOTE: Non-working day and holiday checks intentionally removed so users
+    // can apply leave for any date. Timesheet conflicts are still enforced below.
 
     // Reset for timesheet conflict checks
-    currentDate.setTime(startDate.getTime());
+    const currentDate = new Date(startDate);
+
+    const end = new Date(endDate);
 
     // For single-day leaves, check that specific date
     if (startDateStr === endDateStr) {
