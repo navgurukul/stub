@@ -228,7 +228,6 @@ export default function EmployeeDatabasePage() {
     <>
       <AppHeader
         crumbs={[
-          { label: "Dashboard", href: "/" },
           { label: "Employee Database" },
         ]}
       />

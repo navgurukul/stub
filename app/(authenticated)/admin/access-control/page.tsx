@@ -21,7 +21,6 @@ export default function AccessControlPage() {
     <RoleProtectedRoute requiredRoles={ROLES.SUPER_ADMIN}>
       <AppHeader
         crumbs={[
-          { label: "Dashboard", href: "/" },
           { label: "Admin", href: "/admin/dashboard" },
           { label: "Access Control" },
         ]}

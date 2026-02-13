@@ -362,7 +362,6 @@ if (d.getTime() > today.getTime()) return true;
     <>
       <AppHeader
         crumbs={[
-          { label: "Dashboard", href: "/" },
           { label: "Activity Logger" },
         ]}
       />
@@ -557,43 +556,66 @@ if (d.getTime() > today.getTime()) return true;
                         <FormField
                           control={form.control}
                           name={`projectEntries.${index}.hoursSpent`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Hours Spent</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step={VALIDATION.HOURS_INPUT_STEP}
-                                  min="0"
-                                  max={VALIDATION.MAX_HOURS_PER_ENTRY}
-                                  placeholder="0.0"
-                                  {...field}
-                                  value={
-                                    field.value === undefined || field.value === null
-                                      ? ""
-                                      : typeof field.value === "number"
-                                      ? String(field.value)
-                                      : field.value
-                                  }
-                                  onChange={(e) => {
-                                    const raw = e.target.value;
-                                    const cleaned = raw.replace(/[^\d.]/g, "");
-                                    const parts = cleaned.split(".");
-                                    const intPart = parts[0].slice(0, 2);
-                                    const fracPart = parts[1] ? parts[1].slice(0, 2) : undefined;
-                                    const normalized =
-                                      fracPart !== undefined ? `${intPart}.${fracPart}` : intPart;
-                                    const num = normalized === "" ? 0 : parseFloat(normalized);
-                                    field.onChange(Number.isFinite(num) ? num : 0);
-                                  }}
-                                />
-                              </FormControl>
-                              {/* <FormDescription>
-                                  Maximum 15 hours per entry
-                                </FormDescription> */}
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            const selectedDeptCode = form.watch(
+                              `projectEntries.${index}.currentWorkingDepartment`
+                            );
+                            const selectedProjId = form.watch(
+                              `projectEntries.${index}.projectId`
+                            );
+                            const projectOptionsLocal =
+                              projectsByDept[selectedDeptCode] || [];
+                            const selectedProject = projectOptionsLocal.find(
+                              (p) => p.id.toString() === selectedProjId
+                            );
+                            const isAdHoc =
+                              selectedProject?.name === "Ad-hoc tasks";
+                            const perProjectMax = isAdHoc
+                              ? 2
+                              : VALIDATION.MAX_HOURS_PER_ENTRY;
+                            return (
+                              <FormItem>
+                                <FormLabel>Hours Spent</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step={VALIDATION.HOURS_INPUT_STEP}
+                                    min="0"
+                                    max={perProjectMax}
+                                    placeholder="0.0"
+                                    {...field}
+                                    value={
+                                      field.value === undefined || field.value === null
+                                          ? ""
+                                          : typeof field.value === "number"
+                                          ? String(field.value)
+                                          : field.value
+                                    }
+                                    onChange={(e) => {
+                                      const raw = e.target.value;
+                                      const cleaned = raw.replace(/[^\d.]/g, "");
+                                      const parts = cleaned.split(".");
+                                      const intPart = parts[0].slice(0, 2);
+                                      const fracPart = parts[1] ? parts[1].slice(0, 2) : undefined;
+                                      const normalized =
+                                        fracPart !== undefined ? `${intPart}.${fracPart}` : intPart;
+                                      const num = normalized === "" ? 0 : parseFloat(normalized);
+                                      let valueNum = Number.isFinite(num) ? num : 0;
+                                      // enforce per-project cap (2 hours for Ad-hoc)
+                                      if (isAdHoc && valueNum > 2) {
+                                        valueNum = 2;
+                                      }
+                                      if (valueNum > VALIDATION.MAX_HOURS_PER_ENTRY) {
+                                        valueNum = VALIDATION.MAX_HOURS_PER_ENTRY;
+                                      }
+                                      field.onChange(valueNum);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
 
                         <FormField

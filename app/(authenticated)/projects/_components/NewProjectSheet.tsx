@@ -73,11 +73,18 @@ const formSchema = z
     // allow startDate to be empty when user doesn't pick a date
     startDate: z.date().optional(),
     endDate: z.date().optional(),
-    budgetAmount: z
-      .number()
-      .int()
-      .nonnegative("Budget must be non-negative")
-      .optional(),
+    budgetAmount: z.preprocess(
+      (val) => {
+        // treat empty string / null / undefined as "no value"
+        if (val === "" || val === null || typeof val === "undefined") return undefined;
+        return val;
+      },
+      z.coerce
+        .number()
+        .int()
+        .nonnegative("Budget must be non-negative")
+        .optional()
+    ),
     slackChannelId: z.string().optional(),
     discordChannelId: z.string().optional(),
   })
@@ -130,7 +137,7 @@ export function NewProjectSheet({
   const [selectedManagerName, setSelectedManagerName] = useState<string>("");
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       name: "",
       status: "active",
@@ -268,9 +275,14 @@ export function NewProjectSheet({
         startDate: values.startDate ? format(values.startDate, DATE_FORMATS.API) : undefined,
         endDate: values.endDate ? format(values.endDate, DATE_FORMATS.API) : undefined,
         budgetCurrency: "INR",
-        budgetAmountMinor: values.budgetAmount !== undefined && values.budgetAmount !== null ? values.budgetAmount : undefined,
-        slackChannelId: values.slackChannelId || undefined,
-        discordChannelId: values.discordChannelId || undefined,
+        budgetAmountMinor:
+          values.budgetAmount !== undefined && values.budgetAmount !== null
+            ? values.budgetAmount
+            : undefined,
+        slackChannelId:
+          values.slackChannelId === "" ? null : values.slackChannelId || undefined,
+        discordChannelId:
+          values.discordChannelId === "" ? null : values.discordChannelId || undefined,
       };
 
       let response;

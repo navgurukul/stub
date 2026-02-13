@@ -68,6 +68,11 @@ interface NavItem {
 // Navigation data
 const navLinks: NavItem[] = [
   {
+    title: "Dashboard",
+    url: "/",
+    icon: LayoutDashboard,
+  },
+  {
     title: "Activity Logger",
     url: "/tracker",
     icon: Target,
