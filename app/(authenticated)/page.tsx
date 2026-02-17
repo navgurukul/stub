@@ -112,6 +112,7 @@ export default function DashboardPage() {
      
        const allDays: DayData[] = [];
        let mainMonthTotals = { timesheetHours: 0, leaveHours: 0 };
+      let serverPeriod: MonthlyTimesheetResponse["period"] | null = null;
  
         // iterate unique months only once
         const periodKeys = Array.from(monthsNeeded);
@@ -124,10 +125,13 @@ export default function DashboardPage() {
             params: { year, month },
           }).then((res) => {
             allDays.push(...res.data.days);
-            if (key === getPeriodKey(currentMonth)) mainMonthTotals = res.data.totals;
+            if (key === getPeriodKey(currentMonth)) {
+              mainMonthTotals = res.data.totals;
+              serverPeriod = res.data.period ?? serverPeriod;
+            }
           });
         }
-
+ 
         if (id !== fetchIdRef.current) return;
         // Build the combined MonthlyTimesheetResponse from fetched period data
         const finalDays = Array.from(
@@ -141,23 +145,23 @@ export default function DashboardPage() {
           getPeriodKey(currentMonth)
         );
         const combined: MonthlyTimesheetResponse = {
-          user:
-            monthlyData?.user || {
-              id: 0,
-              name: "",
-              departmentId: 0,
-            },
-          period: {
+           user:
+             monthlyData?.user || {
+               id: 0,
+               name: "",
+               departmentId: 0,
+             },
+          period: serverPeriod ?? {
             year: periodYear,
             month: periodMonth,
             start: format(visibleStart, DATE_FORMATS.API),
             end: format(visibleEnd, DATE_FORMATS.API),
           },
-          totals: mainMonthTotals,
-          days: visibleDays,
-        };
-+
-        setMonthlyData(combined);
+           totals: mainMonthTotals,
+           days: visibleDays,
+         };
+ 
+         setMonthlyData(combined);
 
       } catch (err: unknown) {
         if (id !== fetchIdRef.current) return;
@@ -293,6 +297,44 @@ export default function DashboardPage() {
    const days = monthlyData.totals.leaveHours / 8;
    return Number.isInteger(days) ? days : Number(days.toFixed(1));
  })();
+
+const payableDays = useMemo(() => {
+  if (!monthlyData) return 0;
+
+  const startStr = monthlyData.period?.start || monthlyData.days[0]?.date;
+  const endStr =
+    monthlyData.period?.end || monthlyData.days[monthlyData.days.length - 1]?.date;
+  if (!startStr || !endStr) return 0;
+
+  const start = parseISO(startStr);
+  const end = parseISO(endStr);
+
+  const dayMap = new Map(monthlyData.days.map((d) => [d.date, d]));
+
+  let totalDayCount = 0;
+  let lwpHours = 0;
+
+  for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
+    totalDayCount += 1;
+    const key = format(dt, DATE_FORMATS.API);
+    const day = dayMap.get(key);
+    if (day?.leaves?.entries && Array.isArray(day.leaves.entries)) {
+      for (const le of day.leaves.entries) {
+        const lt = le.leaveType;
+        const isLWP =
+          lt &&
+          ((lt.code && lt.code.toLowerCase() === "lwp") ||
+            (lt.name && lt.name.toLowerCase().includes("leave without pay")));
+        if (isLWP) lwpHours += le.hours ?? 0;
+      }
+    }
+  }
+
+  const lwpDays = lwpHours / 8;
+  const payable = totalDayCount - lwpDays;
+  return Number.isInteger(payable) ? payable : Number(payable.toFixed(1));
+}, [monthlyData]);
+
   return (
     <>
       <AppHeader crumbs={[{ label: "Dashboard" }]} />
@@ -369,9 +411,7 @@ export default function DashboardPage() {
                     </p>
 
                     <p className="text-3xl font-bold">
-                      {monthlyData
-                        ? monthlyData.days.filter((d) => d.isWorkingDay).length
-                        : 0}
+                      {payableDays}
                     </p>
 
                     <p className="text-xs text-muted-foreground">
