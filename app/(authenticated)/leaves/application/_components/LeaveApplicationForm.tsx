@@ -340,7 +340,16 @@ export function LeaveApplicationForm({
           invalidateMonthlyTimesheetCache(endYear, endMonth);
         }
 
-        form.reset();
+        form.reset({
+          employeeEmail: userEmail,
+          leaveType: "",
+          reason: "",
+          startDate: undefined,
+          endDate: undefined,
+          durationType: "",
+          halfDaySegment: "",
+        });
+        setSelectedDurationType("");
         setValidationError(null);
         setDateRange(undefined);
       }
@@ -387,8 +396,8 @@ export function LeaveApplicationForm({
                   <FormItem>
                     <FormLabel>Leave Type</FormLabel>
                     <Select
+                      value={field.value}
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -508,6 +517,7 @@ export function LeaveApplicationForm({
                   <FormItem>
                     <FormLabel>Duration Type</FormLabel>
                     <Select
+                      value={field.value}
                       onValueChange={(value) => {
                         field.onChange(value);
                         setSelectedDurationType(value);
@@ -520,7 +530,6 @@ export function LeaveApplicationForm({
                           }
                         }
                       }}
-                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -552,8 +561,8 @@ export function LeaveApplicationForm({
                     <FormItem>
                       <FormLabel>Half Day Segment</FormLabel>
                       <Select
+                        value={field.value}
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>

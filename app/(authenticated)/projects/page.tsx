@@ -36,6 +36,11 @@ export default function ProjectManagementPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(25);
+  const [total, setTotal] = useState<number>(0);
+
   const handleEditProject = (projectId: string) => {
     console.log("Edit project clicked:", projectId);
     const project = projects.find((p) => String(p.id) === String(projectId)) || null;
@@ -50,7 +55,7 @@ export default function ProjectManagementPage() {
   useEffect(() => {
     if (authLoading) return;
     fetchProjects();
-  }, [statusFilter, searchTerm, user?.orgId, authLoading]);
+  }, [statusFilter, searchTerm, user?.orgId, authLoading, page, limit]);
 
   const fetchProjects = async (): Promise<void> => {
     // Don't fetch if auth is still loading
@@ -68,6 +73,8 @@ export default function ProjectManagementPage() {
     try {
       const params: Record<string, string | number> = {
         orgId: user.orgId,
+        page,
+        limit,
       };
 
       // Add status filter if not "all"
@@ -83,9 +90,13 @@ export default function ProjectManagementPage() {
       const response = await apiClient.get(API_PATHS.PROJECTS, { params });
 
       if (response.data) {
-        setProjects(
-          Array.isArray(response.data.data) ? response.data.data : []
-        );
+        const items = Array.isArray(response.data.data) ? response.data.data : [];
+        setProjects(items);
+        if (typeof response.data.total !== "undefined") {
+          setTotal(Number(response.data.total) || items.length);
+        } else {
+          setTotal((prev) => Math.max(prev, (page - 1) * limit + items.length));
+        }
       }
     } catch (error: any) {
       console.error("Error fetching projects:", error);
@@ -103,6 +114,7 @@ export default function ProjectManagementPage() {
   };
 
   const handleSearch = (): void => {
+    setPage(1);
     setSearchTerm(searchInput);
   };
 
@@ -115,11 +127,13 @@ export default function ProjectManagementPage() {
   };
 
   const handleClearSearch = (): void => {
+    setPage(1);
     setSearchInput("");
     setSearchTerm("");
   };
 
   const handleStatusChange = (value: string): void => {
+    setPage(1);
     setStatusFilter(value);
   };
 
@@ -133,8 +147,6 @@ export default function ProjectManagementPage() {
     >
       <AppHeader
         crumbs={[
-          { label: "Dashboard", href: "/" },
-          { label: "Admin", href: "/admin/dashboard" },
           { label: "Project Management" },
         ]}
       />
@@ -186,11 +198,40 @@ export default function ProjectManagementPage() {
                   )}
                 </div>
 
-                {/* Results Summary */}
-                {!loading && projects.length > 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    Showing {projects.length} project
-                    {projects.length !== 1 ? "s" : ""}
+                {/* Results Summary + Pagination */}
+                {!loading && (projects.length > 0 || total > 0) && (
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      {(() => {
+                        const start = total === 0 ? 0 : (page - 1) * limit + 1;
+                        const end = Math.min(page * limit, Math.max(total, projects.length));
+                        const totalDisplay = total || projects.length;
+                        return `Showing ${start}-${end} of ${totalDisplay} project${totalDisplay !== 1 ? "s" : ""}`;
+                      })()}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page <= 1}
+                      >
+                        Previous
+                      </Button>
+
+                      <div className="px-2 text-sm">{page}</div>
+
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const totalPages = Math.max(1, Math.ceil((total || projects.length) / limit));
+                          setPage((p) => Math.min(totalPages, p + 1));
+                        }}
+                        disabled={page * limit >= (total || projects.length)}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

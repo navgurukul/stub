@@ -102,7 +102,6 @@ export default function LeaveApplicationPage() {
     <>
       <AppHeader
         crumbs={[
-          { label: "Dashboard", href: "/" },
           { label: "Leave Application" },
         ]}
       />

@@ -18,7 +18,8 @@ const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
-  { value: "archived", label: "Archived" },
+  { value: "on_hold", label: "On_hold" },
+   { value: "completed", label: "Completed" },
 ];
 
 interface ProjectFiltersProps {

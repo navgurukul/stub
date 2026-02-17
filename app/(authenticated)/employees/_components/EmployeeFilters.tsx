@@ -140,18 +140,21 @@ export function EmployeeFilters({
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <div className="relative flex-1 md:flex-initial">
           {showClearButton ? (
-            <Badge className="justify-between font-normal w-full text-sm text-muted-foreground hover:text-foreground md:w-[250px] py-2.5">
-              <p>
-                Manager:
-                <span className="font-medium ml-1">{selectedManagerName}</span>
-              </p>
+            <div className="relative w-full md:w-[250px]">
+              <Badge className="block font-normal w-full text-sm text-muted-foreground py-2.5 pr-10 hover:text-foreground">
+                <div className="truncate">
+                  Manager:
+                  <span className="font-medium ml-1">{selectedManagerName}</span>
+                </div>
+              </Badge>
               <button
                 onClick={handleClearManager}
                 aria-label="Clear manager filter"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
-            </Badge>
+            </div>
           ) : (
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
