@@ -152,7 +152,7 @@ export default function ProjectManagementPage() {
       />
       <PageWrapper>
         <div className="flex w-full justify-center p-4">
-          <Card className="mx-auto w-full min-w-[120px] max-w-[80vw] sm:max-w-xs md:max-w-lg lg:max-w-2xl xl:max-w-3xl">
+          <Card className="mx-auto w-full min-w-[120px] max-w-[95vw] sm:max-w-[640px] md:max-w-[900px] lg:max-w-[1200px] xl:max-w-[1000px]">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -188,14 +188,19 @@ export default function ProjectManagementPage() {
                 />
 
                 {/* Projects Table */}
-                <div onClick={() => console.log("div clicked", projects)}>
-                  {loading ? (
-                    <LoadingState />
-                  ) : projects.length === 0 ? (
-                    <EmptyState />
-                  ) : (
-                    <ProjectsTable projects={projects} onEditProject={handleEditProject} />
-                  )}
+                <div
+                  className="overflow-x-auto"
+                  onClick={() => console.log("div clicked", projects)}
+                >
+                  <div className="min-w-[900px] max-h-[60vh] overflow-auto">
+                    {loading ? (
+                      <LoadingState />
+                    ) : projects.length === 0 ? (
+                      <EmptyState />
+                    ) : (
+                      <ProjectsTable projects={projects} onEditProject={handleEditProject} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Results Summary + Pagination */}
