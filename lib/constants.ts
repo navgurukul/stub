@@ -133,3 +133,5 @@ export const DEFAULT_USER_EMAIL = "john.doe@company.com";
 // Shared indicator styles for calendar day dots
 export const DAY_INDICATOR_BASE =
   "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full";
+
+export const WORK_DAYS_NEEDED = 3;

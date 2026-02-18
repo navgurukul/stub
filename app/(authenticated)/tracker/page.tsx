@@ -51,7 +51,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import apiClient from "@/lib/api-client";
-import { API_PATHS, DATE_FORMATS, VALIDATION } from "@/lib/constants";
+import { API_PATHS, DATE_FORMATS, VALIDATION, WORK_DAYS_NEEDED } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -116,7 +116,7 @@ export default function TrackerPage() {
       return d.getTime() !== today.getTime();
     }
 
-    let workDaysNeeded = 3;
+    const workDaysNeeded = WORK_DAYS_NEEDED;
     const cursor = new Date(today);
     cursor.setDate(cursor.getDate() - 1);
 
