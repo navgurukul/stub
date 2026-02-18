@@ -493,7 +493,7 @@ const payableDays = useMemo(() => {
                     <EmptyActivityState
                       variant="date"
                       canAddActivity={canAddActivity}
-                      canAddLeave={!isNonWorkingDay && !isFutureDate}
+                      canAddLeave={!isNonWorkingDay}
                     />
                   ) : (
                     <div className="space-y-4">

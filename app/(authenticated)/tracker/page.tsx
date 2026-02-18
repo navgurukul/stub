@@ -51,12 +51,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import apiClient from "@/lib/api-client";
-import { API_PATHS, DATE_FORMATS, VALIDATION } from "@/lib/constants";
+import { API_PATHS, DATE_FORMATS, VALIDATION, WORK_DAYS_NEEDED } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import {
   checkTimesheetConflictWithLeave,
   invalidateMonthlyTimesheetCache,
+  isNonWorkingDay,
 } from "@/lib/leave-timesheet-validator";
 
 export default function TrackerPage() {
@@ -99,32 +100,39 @@ export default function TrackerPage() {
     fetchDepartments();
   }, [isLoading, user?.orgId]);
 
-  // Disable dates outside the allowed 3-day window (last 3 days including today)
-  // If backfill remaining is zero, only allow today
   const disableInvalidDates = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
 
     // Disable future dates
-   const d = new Date(date);
-d.setHours(0,0,0,0);
-if (d.getTime() > today.getTime()) return true;
+    if (d.getTime() > today.getTime()) return true;
 
-    // If backfill remaining is zero or undefined, only allow today
     const backfillRemaining = user?.backfill?.remaining ?? 0;
     if (backfillRemaining === 0) {
-      return selectedDate.getTime() !== today.getTime();
+     
+      return d.getTime() !== today.getTime();
     }
 
-    // Otherwise, maintain existing 3-day window logic
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(today.getDate() - 3);
+    const workDaysNeeded = WORK_DAYS_NEEDED;
+    const cursor = new Date(today);
+    cursor.setDate(cursor.getDate() - 1);
 
-    // Disable dates older than 3 days
-    if (date < threeDaysAgo) return true;
+    let found = 0;
+    while (found < workDaysNeeded) {
+      if (!isNonWorkingDay(cursor)) {
+        found++;
+        if (found >= workDaysNeeded) break;
+      }
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    const earliestAllowed = new Date(cursor);
+    earliestAllowed.setHours(0, 0, 0, 0);
+
+    if (d.getTime() < earliestAllowed.getTime()) return true;
 
     return false;
   };
