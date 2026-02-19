@@ -294,7 +294,6 @@ export default function LeaveHistoryPage() {
     },
     [selectedMonth]
   );
-
   // Filter leave records by selected month
   const filteredLeaves = useMemo(
     () => filterLeavesByMonth(leaveHistory),
