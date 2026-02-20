@@ -16,6 +16,7 @@ console.log(
 console.log("[API Config] Final BASE_URL:", baseUrl);
 
 export const API = {
+  BASE_URL: "https://navtrack.navgurukul.org/api",
   BASE_URL: baseUrl,
   TIMEOUT_MS: 10000,
 } as const;
