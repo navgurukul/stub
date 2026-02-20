@@ -7,14 +7,6 @@
 // API Configuration
 // =============================================================================
 
-// Debug: Log the environment variable at build time
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-console.log(
-  "[API Config] NEXT_PUBLIC_API_BASE_URL:",
-  process.env.NEXT_PUBLIC_API_BASE_URL
-);
-console.log("[API Config] Final BASE_URL:", baseUrl);
-
 export const API = {
   BASE_URL: "https://navtrack.navgurukul.org/api",
   TIMEOUT_MS: 10000,
@@ -35,11 +27,17 @@ export const API_PATHS = {
   AUTH_ME: "/v1/auth/me",
   ACTIVITIES_SUBMIT: "/v1/timesheets",
   MONTHLY_TIMESHEET: "/v1/timesheets/monthly",
-  LEAVES_APPLICATION: "/v1/leaves/application",
-  LEAVES_REQUESTS: "/v1/leaves/requests",
-  LEAVES_HISTORY: "/v1/leaves/history",
+  LEAVES_REQUESTS_GET: "/v1/leaves/my-requests",
+  LEAVES_TEAM_REQUESTS_GET: "/v1/leaves/requests",
+  LEAVES_REQUESTS_POST: "/v1/leaves/requests",
   LEAVES_BALANCES: "/v1/leaves/balances",
+  LEAVES_APPROVE: "/v1/leaves/requests",
+  LEAVES_REJECT: "/v1/leaves/requests",
+  LEAVES_BULK_APPROVE: "/v1/leaves/requests/approve",
+  LEAVES_BULK_REJECT: "/v1/leaves/requests/reject",
   EMPLOYEES: "/v1/users",
+  MANAGERS: "/v1/users/managers",
+  SYNC_GOOGLE_SHEET: "/v1/users/sync/google-sheet",
   COMPOFF_REQUEST: "/v1/leaves/comp-offs",
   LEAVES_TYPES: "/v1/leaves/types",
   PROJECTS: "/v1/projects",
@@ -91,6 +89,12 @@ export const VALIDATION = {
   MIN_TASK_DESCRIPTION_LENGTH: 10,
   /** Minimum characters for leave reason */
   MIN_LEAVE_REASON_LENGTH: 10,
+  /** Hours for a full working day */
+  FULL_DAY_HOURS: 8,
+  /** Hours for a half working day */
+  HALF_DAY_HOURS: 4,
+  /** Maximum timesheet hours allowed when half-day leave exists */
+  MAX_HOURS_WITH_HALF_DAY_LEAVE: 6,
 } as const;
 
 // =============================================================================
@@ -113,8 +117,21 @@ export const RESPONSIVE_WIDTHS = {
   MIN_CARD_WIDTH: "180px",
 } as const;
 
+/** Fixed set of employee roles in the system with user-friendly display names */
+export const EMPLOYEE_ROLES = {
+  Employee: "employee",
+  Administrator: "admin",
+  "Super Administrator": "super_admin",
+} as const;
+
 // =============================================================================
 // Mock Data Defaults (to be replaced with API data)
 // =============================================================================
 
 export const DEFAULT_USER_EMAIL = "john.doe@company.com";
+
+// Shared indicator styles for calendar day dots
+export const DAY_INDICATOR_BASE =
+  "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full";
+
+export const WORK_DAYS_NEEDED = 3;
