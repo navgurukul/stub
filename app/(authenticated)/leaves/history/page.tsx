@@ -46,7 +46,7 @@ interface LeaveRequest {
   halfDaySegment: "first_half" | "second_half" | null;
   hours: number;
   reason: string;
-  // requestedAt: string;
+  requestedAt: string;
   updatedAt: string;
   decidedByUserId: number | null;
 }

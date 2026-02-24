@@ -30,7 +30,7 @@ interface LeaveRequest {
   halfDaySegment: "first_half" | "second_half" | null;
   hours: number;
   reason: string;
-  //   requestedAt: string;
+  requestedAt: string;
   updatedAt: string;
   decidedByUserId: number | null;
 }
@@ -69,11 +69,11 @@ export function LeaveTable({ leaves, isLoading }: LeaveTableProps) {
       <TableHeader>
         <TableRow>
           <TableHead>Leave Type</TableHead>
+          <TableHead>Applied Date</TableHead>
           <TableHead>Start Date</TableHead>
           <TableHead>End Date</TableHead>
           <TableHead>Duration</TableHead>
           <TableHead>Reason</TableHead>
-          {/* <TableHead>Requested At</TableHead> */}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -83,6 +83,9 @@ export function LeaveTable({ leaves, isLoading }: LeaveTableProps) {
               {leave.leaveType.name}
             </TableCell>
             <TableCell>
+              {format(parseISO(leave.requestedAt), DATE_FORMATS.DISPLAY)}
+            </TableCell>
+            <TableCell>
               {format(parseISO(leave.startDate), DATE_FORMATS.DISPLAY)}
             </TableCell>
             <TableCell>
@@ -90,9 +93,6 @@ export function LeaveTable({ leaves, isLoading }: LeaveTableProps) {
             </TableCell>
             <TableCell>{formatDuration(leave)}</TableCell>
             <TableCell className="max-w-xs truncate">{leave.reason}</TableCell>
-            {/* <TableCell>
-              {format(parseISO(leave.requestedAt), DATE_FORMATS.DISPLAY)}
-            </TableCell> */}
           </TableRow>
         ))}
       </TableBody>
