@@ -36,6 +36,7 @@ interface LeaveBalanceItem {
   balanceHours: number;
   pendingHours: number;
   bookedHours: number;
+  allocatedHours: number;
   asOfDate: string;
   leaveType: LeaveType;
 }
@@ -66,6 +67,7 @@ export default function LeaveApplicationPage() {
         balance: balance.balanceHours / 8,
         booked: balance.bookedHours / 8,
         pending: balance.pendingHours / 8,
+        allocated:balance.allocatedHours / 8, 
       }));
 
       setAllocatedLeaves(mapped);

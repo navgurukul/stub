@@ -39,7 +39,7 @@ export type LeaveRequest = {
   halfDaySegment: "first_half" | "second_half" | null;
   hours: number;
   reason: string;
-  // requestedAt: string;
+  requestedAt: string;
   updatedAt: string;
   decidedByUserId: number | null;
 };
@@ -181,6 +181,16 @@ export const columns: ColumnDef<LeaveRequest>[] = [
     ),
   },
   {
+    accessorKey: "requestedAt",
+    header: "Applied Date",
+    cell: ({ row }) => {
+      return format(
+        parseISO(row.getValue("requestedAt")),
+        DATE_FORMATS.DISPLAY
+      );
+    },
+  },
+  {
     accessorKey: "startDate",
     header: "Start Date",
     cell: ({ row }) => {
@@ -208,16 +218,6 @@ export const columns: ColumnDef<LeaveRequest>[] = [
       <div className="max-w-xs truncate">{row.getValue("reason")}</div>
     ),
   },
-  // {
-  //   accessorKey: "requestedAt",
-  //   header: "Requested At",
-  //   cell: ({ row }) => {
-  //     return format(
-  //       parseISO(row.getValue("requestedAt")),
-  //       DATE_FORMATS.DISPLAY
-  //     );
-  //   },
-  // },
   {
     id: "actions",
     enableHiding: false,

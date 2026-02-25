@@ -214,6 +214,21 @@ export async function checkOverlappingLeaves(
       // Overlap exists if: (StartA <= EndB) AND (EndA >= StartB)
       const hasOverlap = requestStart <= leaveEnd && requestEnd >= leaveStart;
 
+      // Allow two half-day leaves on the same date (one first_half + one second_half).
+      if (durationType === "half_day" && leave.durationType === "half_day") {
+        const reqStartStr = format(requestStart, DATE_FORMATS.API);
+        const reqEndStr = format(requestEnd, DATE_FORMATS.API);
+        const leaveStartStr = format(leaveStart, DATE_FORMATS.API);
+        const leaveEndStr = format(leaveEnd, DATE_FORMATS.API);
+
+        const requestIsSingleDay = reqStartStr === reqEndStr;
+        const leaveIsSingleDay = leaveStartStr === leaveEndStr;
+
+        if (requestIsSingleDay && leaveIsSingleDay && reqStartStr === leaveStartStr) {
+          return false;
+        }
+      }
+
       return hasOverlap;
     });
 

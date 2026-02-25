@@ -170,6 +170,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Link
                 href="/"
                 className="grid flex-1 text-left text-sm leading-tight"
+                title="STUB - Simple Tracking Until Better. We dont have satisfactory output tracking yet so until then we will do input tracking"
               >
                 <h1 className="truncate font-heading">S.T.U.B</h1>
                 <span className="truncate text-xs">Simple Tracking Until Better</span>

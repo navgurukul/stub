@@ -46,7 +46,7 @@ interface LeaveRequest {
   halfDaySegment: "first_half" | "second_half" | null;
   hours: number;
   reason: string;
-  // requestedAt: string;
+  requestedAt: string;
   updatedAt: string;
   decidedByUserId: number | null;
 }
@@ -154,12 +154,6 @@ export default function LeaveHistoryPage() {
         "Approval Date",
       ]);
       (window as any).__EXPORT_RECORDS = records;
-      let localAuth: any = null;
-      try {
-        const raw = localStorage.getItem("AUTH") || localStorage.getItem("auth") || localStorage.getItem("user");
-        localAuth = raw ? JSON.parse(raw) : null;
-      } catch (e) {
-      }
 
       const approverIdSet = new Set<number>();
       records.forEach((r: any) => {
@@ -174,17 +168,11 @@ export default function LeaveHistoryPage() {
       });
 
       const approverMap: Record<number, string> = {};
-      const localId = localAuth ? (localAuth.id ?? localAuth.userId ?? localAuth.user?.id) : null;
-      if (localId) {
-        approverMap[Number(localId)] = localAuth.name ?? localAuth.fullName ?? localAuth.email ?? "";
-        approverIdSet.delete(Number(localId)); 
-      }
-
       if (approverIdSet.size) {
         await Promise.all(
           Array.from(approverIdSet).map(async (id) => {
             try {
-              const resp = await apiClient.get(`/users/${id}`); 
+              const resp = await apiClient.get(`/users/${id}`);
               const u = resp.data;
               approverMap[id] = u?.name || u?.fullName || u?.email || "";
             } catch {
@@ -193,6 +181,7 @@ export default function LeaveHistoryPage() {
           })
         );
       }
+
       records.forEach((rec: any) => {
         const employeeName = rec.user?.name ?? rec.user?.fullName ?? rec.user?.email ?? "";
         const leaveType = rec.leaveType?.name ?? "";
@@ -204,6 +193,7 @@ export default function LeaveHistoryPage() {
         const approvalStatus =
           rec.state === "approved" ? "Approved" : rec.state === "rejected" ? "Rejected" : "Pending";
         const approverNameFromFields =
+          rec.decidedByUserName ||
           rec.decidedBy?.name ||
           rec.decidedByName ||
           rec.decider?.name ||
@@ -219,15 +209,12 @@ export default function LeaveHistoryPage() {
           rec.approver_id ??
           rec.decidedBy?.id ??
           null;
-        let approverName = approverNameFromFields || (approverId ? approverMap[Number(approverId)] : "") || "";
-
-        if (!approverName && approverId && localAuth) {
-          const localId = localAuth.id ?? localAuth.userId ?? localAuth.user?.id;
-          if (Number(localId) === Number(approverId)) {
-            approverName = localAuth.name ?? localAuth.fullName ?? localAuth.email ?? "";
-          }
+        // include approver name in CSV only when the request is approved
+        let approverName = "";
+        if (rec.state === "approved") {
+          approverName = approverNameFromFields || (approverId ? approverMap[Number(approverId)] : "") || "";
         }
-
+        
         const approvalDate = rec.updatedAt && rec.state !== "pending" ? format(parseISO(rec.updatedAt), "yyyy-MM-dd") : "";
 
         rows.push([

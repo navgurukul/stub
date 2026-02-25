@@ -80,9 +80,9 @@ export const VALIDATION = {
   /** Minimum hours allowed per activity entry */
   MIN_HOURS_PER_ENTRY: 0.5,
   /** Maximum hours allowed per activity entry */
-  MAX_HOURS_PER_ENTRY: 15,
+  MAX_HOURS_PER_ENTRY: 12,
   /** Maximum total hours allowed per day across all entries */
-  MAX_TOTAL_HOURS_PER_DAY: 15,
+  MAX_TOTAL_HOURS_PER_DAY: 12,
   /** Step value for hours input field */
   HOURS_INPUT_STEP: 0.5,
   /** Minimum characters for task description */
