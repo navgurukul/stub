@@ -42,6 +42,7 @@ export const API_PATHS = {
   LEAVES_TYPES: "/v1/leaves/types",
   PROJECTS: "/v1/projects",
   DEPARTMENTS: "/v1/departments",
+  SALARY_SUMMARY: "/v1/timesheets/salary-summary",
 } as const;
 
 export type ApiPathKey = keyof typeof API_PATHS;
