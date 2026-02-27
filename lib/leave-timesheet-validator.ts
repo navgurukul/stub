@@ -261,7 +261,7 @@ export async function checkOverlappingLeaves(
         message: `Cannot apply leave. You already have a ${leaveStatus} ${existingLeave.durationType.replace(
           "_",
           "-"
-        )} leave request for ${dateRangeText}. Please cancel or modify the existing leave before applying for overlapping dates.`,
+        )} leave request for ${dateRangeText}.`,
       };
     }
 
