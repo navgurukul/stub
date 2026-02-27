@@ -74,6 +74,8 @@ export default function TrackerPage() {
     Record<string, { id: number; name: string; code: string }[]>
   >({});
 
+  const [projectSearchQuery, setProjectSearchQuery] = useState<Record<number, string>>({});
+
   useEffect(() => {
     if (isLoading) return;
     const orgId = user?.orgId;
@@ -147,11 +149,27 @@ export default function TrackerPage() {
     if (!dept?.id) return;
 
     try {
-      const res = await apiClient.get(API_PATHS.PROJECTS, {
-        params: { orgId, departmentId: dept.id },
-      });
-      const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      setProjectsByDept((prev) => ({ ...prev, [deptCode]: list }));
+      let allProjects: { id: number; name: string; code: string }[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      // Fetch all pages
+      while (hasMore) {
+        const res = await apiClient.get(API_PATHS.PROJECTS, {
+          params: { orgId, departmentId: dept.id, page, limit: 100 },
+        });
+        
+        const responseData = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        const projects = Array.isArray(responseData) ? responseData : responseData.data || [];
+        
+        allProjects = [...allProjects, ...projects];
+        const total = res.data?.total || projects.length;
+        const limit = res.data?.limit || 100;
+        hasMore = allProjects.length < total;
+        page++;
+      }
+
+      setProjectsByDept((prev) => ({ ...prev, [deptCode]: allProjects }));
     } catch (error: any) {
       console.error("Failed to load projects:", error);
       toast.error("Failed to load projects", {
@@ -268,6 +286,7 @@ export default function TrackerPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -359,6 +378,22 @@ export default function TrackerPage() {
   }
 
   function addProjectEntry() {
+  
+    const lastIndex = fields.length - 1;
+    const lastEntry = form.getValues(`projectEntries.${lastIndex}`);
+    const isLastEntryComplete =
+      lastEntry.currentWorkingDepartment &&
+      lastEntry.projectId &&
+      lastEntry.hoursSpent > 0 &&
+      lastEntry.taskDescription.trim().length >= VALIDATION.MIN_TASK_DESCRIPTION_LENGTH;
+    
+    if (!isLastEntryComplete) {
+      toast.error("Incomplete Entry", {
+        description: "Please complete the current project entry before adding a new one.",
+      });
+      return;
+    }
+
     append({
       currentWorkingDepartment: "",
       hoursSpent: 0,
@@ -396,7 +431,7 @@ export default function TrackerPage() {
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Activity Date</FormLabel>
-                          <Popover>
+                          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
@@ -424,7 +459,8 @@ export default function TrackerPage() {
                                 selected={field.value}
                                 onSelect={(date) => {
                                   if (!date) return;        
-                                  field.onChange(date);    
+                                  field.onChange(date);
+                                  setCalendarOpen(false);
                                 }}
 
                                 disabled={disableInvalidDates}
@@ -449,15 +485,6 @@ export default function TrackerPage() {
                       <h3 className="text-lg font-semibold">
                         Project Activities
                       </h3>
-                      <Button
-                        type="button"
-                        variant="noShadow"
-                        size="sm"
-                        onClick={addProjectEntry}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Project Entry
-                      </Button>
                     </div>
 
                     {fields.map((field, index) => (
@@ -497,6 +524,7 @@ export default function TrackerPage() {
                                       `projectEntries.${index}.projectId`,
                                       ""
                                     );
+                                    setProjectSearchQuery((prev) => ({ ...prev, [index]: "" }));
                                     fetchProjectsForDepartment(value);
                                   }}
                                   defaultValue={field.value}
@@ -531,12 +559,19 @@ export default function TrackerPage() {
                               );
                               const projectOptions =
                                 projectsByDept[selectedDeptCode] || [];
+                              
+                              const searchQuery = projectSearchQuery[index] || "";
+                              const filteredProjects = projectOptions.filter((project) =>
+                                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                project.code.toLowerCase().includes(searchQuery.toLowerCase())
+                              );
+
                               return (
                                 <FormItem>
                                   <FormLabel>Project</FormLabel>
                                   <Select
                                     onValueChange={field.onChange}
-                                    defaultValue={field.value}
+                                    value={field.value}
                                   >
                                     <FormControl>
                                       <SelectTrigger>
@@ -544,14 +579,34 @@ export default function TrackerPage() {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      {projectOptions.map((project) => (
-                                        <SelectItem
-                                          key={project.id}
-                                          value={project.id.toString()}
-                                        >
-                                          {project.name}
-                                        </SelectItem>
-                                      ))}
+                                      <div className="px-2 pb-2">
+                                        <Input
+                                          placeholder="Search projects..."
+                                          value={searchQuery}
+                                          onChange={(e) => {
+                                            setProjectSearchQuery((prev) => ({
+                                              ...prev,
+                                              [index]: e.target.value,
+                                            }));
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="h-8"
+                                        />
+                                      </div>
+                                      {filteredProjects.length === 0 ? (
+                                        <div className="py-6 text-center text-sm text-muted-foreground">
+                                          No projects found
+                                        </div>
+                                      ) : (
+                                        filteredProjects.map((project) => (
+                                          <SelectItem
+                                            key={project.id}
+                                            value={project.id.toString()}
+                                          >
+                                            {project.name}
+                                          </SelectItem>
+                                        ))
+                                      )}
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
@@ -660,7 +715,16 @@ export default function TrackerPage() {
                     </Alert>
                   )}
 
-                  <div className="flex justify-end pt-4">
+                  <div className="flex justify-between items-center pt-4">
+                    <Button
+                      type="button"
+                      variant="noShadow"
+                      size="lg"
+                      onClick={addProjectEntry}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Project Entry
+                    </Button>
                     <Button type="submit" size="lg" disabled={isSubmitting}>
                       {isSubmitting
                         ? "Submitting..."

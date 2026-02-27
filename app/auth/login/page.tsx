@@ -28,7 +28,7 @@ export default function LoginPage() {
   // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push("/");
+      router.push("/tracker");
     }
   }, [isAuthenticated, authLoading, router]);
 
