@@ -42,7 +42,7 @@ export function ActivityEntryCard({ type, entry }: ActivityEntryCardProps) {
     const timesheetEntry = entry as TimesheetEntry;
     return (
       <Card className="bg-main">
-        <CardContent >
+        <CardContent>
           <div className="space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -75,8 +75,8 @@ export function ActivityEntryCard({ type, entry }: ActivityEntryCardProps) {
   const leaveEntry = entry as LeaveEntry;
 
   return (
-    <Card className="bg-subtle-foreground">
-      <CardContent >
+    <Card className="bg-subtle-background">
+      <CardContent>
         <div className="space-y-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -96,14 +96,12 @@ export function ActivityEntryCard({ type, entry }: ActivityEntryCardProps) {
                   : "Full Day"}
               </p>
             </div>
-              <Badge
-                variant={
-                  leaveEntry.state === "approved" ? "default" : "neutral"
-                }
-              >
-                {leaveEntry.state.charAt(0).toUpperCase() +
-                  leaveEntry.state.slice(1)}
-              </Badge>
+            <Badge
+              variant={leaveEntry.state === "approved" ? "default" : "neutral"}
+            >
+              {leaveEntry.state.charAt(0).toUpperCase() +
+                leaveEntry.state.slice(1)}
+            </Badge>
           </div>
         </div>
       </CardContent>

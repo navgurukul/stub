@@ -10,7 +10,7 @@
   --main-foreground: oklch(0% 0 0);
   --main: oklch(67.47% 0.1726 259.49);
   --subtle: oklch(0.7631 0.1044 259.49);
-  --subtle-foreground:oklch(0.7227 0.1471 50.19);
+  --subtle-background:oklch(0.7227 0.1471 50.19);
   --border: oklch(0% 0 0);
   --ring: oklch(0% 0 0);
   --overlay: oklch(0% 0 0 / 0.8);
@@ -48,7 +48,7 @@
   --color-foreground: var(--foreground);
   --color-main-foreground: var(--main-foreground);
   --color-subtle: var(--subtle);
-  --color-subtle-foreground: var(--subtle-foreground);
+  --color-subtle-background: var(--subtle-background);
   --color-border: var(--border);
   --color-overlay: var(--overlay);
   --color-ring: var(--ring);

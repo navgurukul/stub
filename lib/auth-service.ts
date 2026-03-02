@@ -274,6 +274,10 @@ export const authService = {
           code: string;
           description?: string | null;
         };
+        backfill?: {
+          limit: number;
+          remaining: number;
+        };
       }>(API_PATHS.AUTH_ME);
 
       const userData: UserData = {
@@ -287,6 +291,7 @@ export const authService = {
         managerId: response.data.managerId,
         departmentId: response.data.departmentId,
         department: response.data.department,
+        backfill: response.data.backfill,
       };
 
       // Store user data for consistency with current architecture

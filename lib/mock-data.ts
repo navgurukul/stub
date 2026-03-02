@@ -83,30 +83,35 @@ export const MOCK_ALLOCATED_LEAVES: AllocatedLeave[] = [
     balance: 12,
     booked: 6,
     pending: 2,
+    allocated: 20,
   },
   {
     leaveType: "Sick Leave",
     balance: 8,
     booked: 2,
     pending: 0,
+    allocated: 10,
   },
   {
     leaveType: "Casual Leave",
     balance: 7,
     booked: 3,
     pending: 2,
+    allocated: 12,
   },
   {
     leaveType: "Maternity Leave",
     balance: 90,
     booked: 0,
     pending: 0,
+    allocated: 90,
   },
   {
     leaveType: "Paternity Leave",
     balance: 15,
     booked: 0,
     pending: 0,
+    allocated: 15,
   },
 ];
 

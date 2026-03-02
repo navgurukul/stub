@@ -18,7 +18,8 @@ const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
-  { value: "archived", label: "Archived" },
+  { value: "on_hold", label: "On_hold" },
+   { value: "completed", label: "Completed" },
 ];
 
 interface ProjectFiltersProps {
@@ -36,8 +37,6 @@ export function ProjectFilters({
   onStatusChange,
   searchInput,
   onSearchInputChange,
-  onSearch,
-  onClearSearch,
   onSearchKeyPress,
 }: ProjectFiltersProps) {
   return (
@@ -47,20 +46,11 @@ export function ProjectFilters({
         <Input
           type="search"
           placeholder="Search projects..."
-          className="pl-8 pr-8"
+          className="pl-8 pr-8 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
           value={searchInput}
           onChange={(e) => onSearchInputChange(e.target.value)}
-          onKeyPress={onSearchKeyPress}
+          onKeyDown={onSearchKeyPress}
         />
-        {searchInput && (
-          <button
-            onClick={onClearSearch}
-            className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-            aria-label="Clear search"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
       </div>
       <div className="flex gap-2">
         <Select value={statusFilter} onValueChange={onStatusChange}>
@@ -75,10 +65,10 @@ export function ProjectFilters({
             ))}
           </SelectContent>
         </Select>
-        <Button variant="noShadow" onClick={onSearch}>
+        {/* <Button variant="noShadow" onClick={onSearch}>
           <Search className="mr-2 h-4 w-4" />
           Search
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

@@ -36,6 +36,7 @@ interface LeaveBalanceItem {
   balanceHours: number;
   pendingHours: number;
   bookedHours: number;
+  allocatedHours: number;
   asOfDate: string;
   leaveType: LeaveType;
 }
@@ -50,50 +51,51 @@ export default function LeaveApplicationPage() {
   const [allocatedLeaves, setAllocatedLeaves] = useState<AllocatedLeave[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const fetchLeaveBalances = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get(API_PATHS.LEAVES_BALANCES);
+
+      // Defensive check for response structure
+      const data = response.data as LeaveBalancesResponse | undefined;
+      const balances = Array.isArray(data?.balances) ? data.balances : [];
+
+      // Transform API data to match AllocatedLeavesTable format
+      const mapped: AllocatedLeave[] = balances.map((balance) => ({
+        leaveType:
+          balance.leaveType?.name ?? balance.leaveType?.code ?? "Unknown",
+        balance: balance.balanceHours / 8,
+        booked: balance.bookedHours / 8,
+        pending: balance.pendingHours / 8,
+        allocated:balance.allocatedHours / 8, 
+      }));
+
+      setAllocatedLeaves(mapped);
+    } catch (error) {
+      console.error("Error fetching leave balances:", error);
+      const errorMessage =
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ?.message
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message
+          : error instanceof Error
+          ? error.message
+          : "Failed to load leave balances.";
+      toast.error("Failed to load leave balances", {
+        description: errorMessage,
+      });
+      setAllocatedLeaves([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch leave balances from API
   useEffect(() => {
     if (authLoading) return;
-
-    const fetchLeaveBalances = async (): Promise<void> => {
-      setLoading(true);
-      try {
-        const response = await apiClient.get(API_PATHS.LEAVES_BALANCES);
-
-        // Defensive check for response structure
-        const data = response.data as LeaveBalancesResponse | undefined;
-        const balances = Array.isArray(data?.balances) ? data.balances : [];
-
-        // Transform API data to match AllocatedLeavesTable format
-        const mapped: AllocatedLeave[] = balances.map((balance) => ({
-          leaveType:
-            balance.leaveType?.name ?? balance.leaveType?.code ?? "Unknown",
-          balance: balance.balanceHours / 8,
-          booked: balance.bookedHours / 8,
-          pending: balance.pendingHours / 8,
-        }));
-
-        setAllocatedLeaves(mapped);
-      } catch (error) {
-        console.error("Error fetching leave balances:", error);
-        const errorMessage =
-          typeof error === "object" &&
-          error !== null &&
-          "response" in error &&
-          (error as { response?: { data?: { message?: string } } }).response
-            ?.data?.message
-            ? (error as { response?: { data?: { message?: string } } }).response
-                ?.data?.message
-            : error instanceof Error
-            ? error.message
-            : "Failed to load leave balances.";
-        toast.error("Failed to load leave balances", {
-          description: errorMessage,
-        });
-        setAllocatedLeaves([]);
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchLeaveBalances();
   }, [authLoading]);
@@ -102,7 +104,6 @@ export default function LeaveApplicationPage() {
     <>
       <AppHeader
         crumbs={[
-          { label: "Dashboard", href: "/" },
           { label: "Leave Application" },
         ]}
       />
@@ -117,13 +118,16 @@ export default function LeaveApplicationPage() {
                   </span>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <AllocatedLeavesTable leaves={allocatedLeaves} />
+                  <AllocatedLeavesTable leaves={allocatedLeaves} isLoading={loading} />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           </div>
 
-          <LeaveApplicationForm userEmail={user?.email ?? ""} />
+          <LeaveApplicationForm
+            userEmail={user?.email ?? ""}
+            fetchLeaves={fetchLeaveBalances}
+          />
         </div>
       </PageWrapper>
     </>

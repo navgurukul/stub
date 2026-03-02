@@ -19,6 +19,10 @@ export interface UserData {
     code: string;
     description?: string | null;
   };
+  backfill?: {
+    limit: number;
+    remaining: number;
+  };
 }
 
 const ACCESS_TOKEN_KEY = "access_token";

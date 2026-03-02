@@ -14,6 +14,7 @@ import {
 } from "@/app/_components/wrapper";
 import { useAuth } from "@/hooks/use-auth";
 import { useGoogleLogin } from "@/hooks/use-google-login";
+import { Spinner } from "@/components/ui/spinner";
 
 /**
  * Login Page
@@ -27,7 +28,7 @@ export default function LoginPage() {
   // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push("/");
+      router.push("/tracker");
     }
   }, [isAuthenticated, authLoading, router]);
 
@@ -36,7 +37,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <Spinner className="size-8 inline-block" />
           <p className="mt-4 text-sm text-foreground">Loading...</p>
         </div>
       </div>
@@ -51,19 +52,19 @@ export default function LoginPage() {
   return (
     <PageWrapper>
       <div className="flex h-screen items-center justify-center">
-    <div>
-        <PageHeader>
-          <div className="flex items-center gap-2 justify-center">
-            <Command className="size-10 text-main" />
-            <PageHeading>NavTrack</PageHeading>
+        <div>
+          <PageHeader>
+            <div className="flex items-center gap-2 justify-center">
+              <Command className="size-10 text-main" />
+              <PageHeading>S.T.U.B</PageHeading>
+            </div>
+            <PageDescription>
+              Sign in with your Google account to get started.
+            </PageDescription>
+          </PageHeader>
+          <div className="flex justify-center">
+            <GoogleLoginButton />
           </div>
-          <PageDescription>
-            Sign in with your Google account to get started.
-          </PageDescription>
-        </PageHeader>
-        <div className="flex justify-center">
-          <GoogleLoginButton />
-        </div>
         </div>
       </div>
     </PageWrapper>
