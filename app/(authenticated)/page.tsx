@@ -192,7 +192,11 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
 
 export default function DashboardPage() {
   const { isLoading: authLoading, user } = useAuth();
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1); 
+    return date;
+  });
   const [monthlyData, setMonthlyData] = useState<MonthlyTimesheetResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
