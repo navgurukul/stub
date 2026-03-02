@@ -38,6 +38,7 @@ interface DayData {
   isWorkingDay: boolean;
   isWeekend: boolean;
   isHoliday: boolean;
+  holidayName?: string; 
   timesheet: {
     id: number;
     state: string;
@@ -82,6 +83,7 @@ interface TimesheetRow {
   isLeave: boolean;
   isWeekend: boolean;
   isHoliday: boolean;
+  holidayName?: string; 
   leaveStatus?: 'approved' | 'pending' | 'rejected';
   timesheetState?: string;
 }
@@ -324,9 +326,13 @@ export default function DashboardPage() {
         (!day.leaves?.entries || day.leaves.entries.length === 0)
       ) {
         let offType = '';
-        if (day.isHoliday) offType = 'Holiday';
-        else if (isSunday) offType = 'Sunday';
-        else if (is2ndOr4thSaturday) offType = 'Saturday (Off)';
+        if (day.isHoliday) {
+          offType = day.holidayName ? `Holiday (${day.holidayName})` : 'Holiday';
+        } else if (isSunday) {
+          offType = 'Sunday';
+        } else if (is2ndOr4thSaturday) {
+          offType = 'Saturday (Off)';
+        }
 
         rows.push({
           sno: sno++,
@@ -338,6 +344,7 @@ export default function DashboardPage() {
           isLeave: false,
           isWeekend: isWeekendOff,
           isHoliday: day.isHoliday,
+          holidayName: day.holidayName,
         });
       }
     });

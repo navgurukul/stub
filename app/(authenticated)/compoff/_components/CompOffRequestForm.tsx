@@ -234,19 +234,29 @@ export function CompOffRequestForm() {
 
         if (isAdminOrSuper) {
           const allUsers = await trySingleRequest();
-          const employeeList = (allUsers || []).map((emp: any) => ({
-            id: emp.id,
-            name: emp.name,
-            email: emp.email,
-          }));
+          const employeeList = (allUsers || [])
+            .filter((emp: any) => emp && emp.id) 
+            .map((emp: any) => ({
+              id: emp.id,
+              name: emp.name || emp.email || `User ${emp.id}`, 
+              email: emp.email || '',
+            }))
+            .filter((emp: Employee) => emp.name && !emp.name.includes('#'));
+          
+          employeeList.sort((a: Employee, b: Employee) => a.name.localeCompare(b.name));
           setEmployees(employeeList);
         } else if (isManager) {
           const allUsers = await trySingleRequest({ managerId: user.id });
-          const employeeList = (allUsers || []).map((emp: any) => ({
-            id: emp.id,
-            name: emp.name,
-            email: emp.email,
-          }));
+          const employeeList = (allUsers || [])
+            .filter((emp: any) => emp && emp.id) 
+            .map((emp: any) => ({
+              id: emp.id,
+              name: emp.name || emp.email || `User ${emp.id}`, 
+              email: emp.email || '',
+            }))
+            .filter((emp: Employee) => emp.name && !emp.name.includes('#')); 
+          
+          employeeList.sort((a: Employee, b: Employee) => a.name.localeCompare(b.name));
           setEmployees(employeeList);
         } else {
           // Regular employee: only themselves
