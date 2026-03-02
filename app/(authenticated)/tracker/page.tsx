@@ -51,7 +51,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import apiClient from "@/lib/api-client";
-import { API_PATHS, DATE_FORMATS, VALIDATION, WORK_DAYS_NEEDED } from "@/lib/constants";
+import {
+  API_PATHS,
+  DATE_FORMATS,
+  VALIDATION,
+  WORK_DAYS_NEEDED,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -74,7 +79,9 @@ export default function TrackerPage() {
     Record<string, { id: number; name: string; code: string }[]>
   >({});
 
-  const [projectSearchQuery, setProjectSearchQuery] = useState<Record<number, string>>({});
+  const [projectSearchQuery, setProjectSearchQuery] = useState<
+    Record<number, string>
+  >({});
 
   useEffect(() => {
     if (isLoading) return;
@@ -114,7 +121,6 @@ export default function TrackerPage() {
 
     const backfillRemaining = user?.backfill?.remaining ?? 0;
     if (backfillRemaining === 0) {
-     
       return d.getTime() !== today.getTime();
     }
 
@@ -158,10 +164,14 @@ export default function TrackerPage() {
         const res = await apiClient.get(API_PATHS.PROJECTS, {
           params: { orgId, departmentId: dept.id, page, limit: 100 },
         });
-        
-        const responseData = Array.isArray(res.data) ? res.data : res.data?.data || [];
-        const projects = Array.isArray(responseData) ? responseData : responseData.data || [];
-        
+
+        const responseData = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || [];
+        const projects = Array.isArray(responseData)
+          ? responseData
+          : responseData.data || [];
+
         allProjects = [...allProjects, ...projects];
         const total = res.data?.total || projects.length;
         const limit = res.data?.limit || 100;
@@ -188,11 +198,10 @@ export default function TrackerPage() {
           today.setHours(0, 0, 0, 0);
 
           // Check if date is in the future
-         const d = new Date(date);
+          const d = new Date(date);
           d.setHours(0, 0, 0, 0);
           if (d.getTime() > today.getTime()) return false;
 
-          
           return true;
         },
         {
@@ -217,8 +226,10 @@ export default function TrackerPage() {
           threeDaysAgo.setDate(today.getDate() - 3);
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
-          return d.getTime() >= threeDaysAgo.getTime() && d.getTime() <= today.getTime();
-
+          return (
+            d.getTime() >= threeDaysAgo.getTime() &&
+            d.getTime() <= today.getTime()
+          );
         },
         {
           message:
@@ -378,24 +389,28 @@ export default function TrackerPage() {
   }
 
   function addProjectEntry() {
-  
     const lastIndex = fields.length - 1;
     const lastEntry = form.getValues(`projectEntries.${lastIndex}`);
     const isLastEntryComplete =
       lastEntry.currentWorkingDepartment &&
       lastEntry.projectId &&
       lastEntry.hoursSpent > 0 &&
-      lastEntry.taskDescription.trim().length >= VALIDATION.MIN_TASK_DESCRIPTION_LENGTH;
-    
+      lastEntry.taskDescription.trim().length >=
+        VALIDATION.MIN_TASK_DESCRIPTION_LENGTH;
+
     if (!isLastEntryComplete) {
       toast.error("Incomplete Entry", {
-        description: "Please complete the current project entry before adding a new one.",
+        description:
+          "Please complete the current project entry before adding a new one.",
       });
       return;
     }
 
+    const inheritedDept = lastEntry.currentWorkingDepartment || "";
+    if (inheritedDept) fetchProjectsForDepartment(inheritedDept);
+
     append({
-      currentWorkingDepartment: "",
+      currentWorkingDepartment: inheritedDept,
       hoursSpent: 0,
       projectId: "",
       taskDescription: "",
@@ -403,11 +418,7 @@ export default function TrackerPage() {
   }
   return (
     <>
-      <AppHeader
-        crumbs={[
-          { label: "Activity Logger" },
-        ]}
-      />
+      <AppHeader crumbs={[{ label: "Activity Logger" }]} />
       <PageWrapper>
         <div className="flex w-full justify-center p-4">
           <Card className="mx-auto w-full min-w-[120px] max-w-[80vw] sm:max-w-xs md:max-w-lg lg:max-w-2xl xl:max-w-3xl">
@@ -431,7 +442,10 @@ export default function TrackerPage() {
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Activity Date</FormLabel>
-                          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                          <Popover
+                            open={calendarOpen}
+                            onOpenChange={setCalendarOpen}
+                          >
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
@@ -458,11 +472,10 @@ export default function TrackerPage() {
                                 mode="single"
                                 selected={field.value}
                                 onSelect={(date) => {
-                                  if (!date) return;        
+                                  if (!date) return;
                                   field.onChange(date);
                                   setCalendarOpen(false);
                                 }}
-
                                 disabled={disableInvalidDates}
                                 initialFocus
                               />
@@ -524,7 +537,10 @@ export default function TrackerPage() {
                                       `projectEntries.${index}.projectId`,
                                       ""
                                     );
-                                    setProjectSearchQuery((prev) => ({ ...prev, [index]: "" }));
+                                    setProjectSearchQuery((prev) => ({
+                                      ...prev,
+                                      [index]: "",
+                                    }));
                                     fetchProjectsForDepartment(value);
                                   }}
                                   defaultValue={field.value}
@@ -559,11 +575,17 @@ export default function TrackerPage() {
                               );
                               const projectOptions =
                                 projectsByDept[selectedDeptCode] || [];
-                              
-                              const searchQuery = projectSearchQuery[index] || "";
-                              const filteredProjects = projectOptions.filter((project) =>
-                                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                project.code.toLowerCase().includes(searchQuery.toLowerCase())
+
+                              const searchQuery =
+                                projectSearchQuery[index] || "";
+                              const filteredProjects = projectOptions.filter(
+                                (project) =>
+                                  project.name
+                                    .toLowerCase()
+                                    .includes(searchQuery.toLowerCase()) ||
+                                  project.code
+                                    .toLowerCase()
+                                    .includes(searchQuery.toLowerCase())
                               );
 
                               return (
@@ -648,28 +670,45 @@ export default function TrackerPage() {
                                     placeholder="0.0"
                                     {...field}
                                     value={
-                                      field.value === undefined || field.value === null
-                                          ? ""
-                                          : typeof field.value === "number"
-                                          ? String(field.value)
-                                          : field.value
+                                      field.value === undefined ||
+                                      field.value === null
+                                        ? ""
+                                        : typeof field.value === "number"
+                                        ? String(field.value)
+                                        : field.value
                                     }
                                     onChange={(e) => {
                                       const raw = e.target.value;
-                                      const cleaned = raw.replace(/[^\d.]/g, "");
+                                      const cleaned = raw.replace(
+                                        /[^\d.]/g,
+                                        ""
+                                      );
                                       const parts = cleaned.split(".");
                                       const intPart = parts[0].slice(0, 2);
-                                      const fracPart = parts[1] ? parts[1].slice(0, 2) : undefined;
+                                      const fracPart = parts[1]
+                                        ? parts[1].slice(0, 2)
+                                        : undefined;
                                       const normalized =
-                                        fracPart !== undefined ? `${intPart}.${fracPart}` : intPart;
-                                      const num = normalized === "" ? 0 : parseFloat(normalized);
-                                      let valueNum = Number.isFinite(num) ? num : 0;
+                                        fracPart !== undefined
+                                          ? `${intPart}.${fracPart}`
+                                          : intPart;
+                                      const num =
+                                        normalized === ""
+                                          ? 0
+                                          : parseFloat(normalized);
+                                      let valueNum = Number.isFinite(num)
+                                        ? num
+                                        : 0;
                                       // enforce per-project cap (2 hours for Ad-hoc)
                                       if (isAdHoc && valueNum > 2) {
                                         valueNum = 2;
                                       }
-                                      if (valueNum > VALIDATION.MAX_HOURS_PER_ENTRY) {
-                                        valueNum = VALIDATION.MAX_HOURS_PER_ENTRY;
+                                      if (
+                                        valueNum >
+                                        VALIDATION.MAX_HOURS_PER_ENTRY
+                                      ) {
+                                        valueNum =
+                                          VALIDATION.MAX_HOURS_PER_ENTRY;
                                       }
                                       field.onChange(valueNum);
                                     }}
