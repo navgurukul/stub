@@ -715,7 +715,7 @@ export default function TrackerPage() {
                     </Alert>
                   )}
 
-                  <div className="flex justify-between items-center pt-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-4">
                     <Button
                       type="button"
                       variant="noShadow"
