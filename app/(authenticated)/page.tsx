@@ -222,7 +222,13 @@ export default function DashboardPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isExporting, setIsExporting] = useState(false);
-  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [viewMode, setViewMode] = useState<"table" | "grid">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("timesheet-view-mode");
+      if (saved === "table" || saved === "grid") return saved;
+    }
+    return "table";
+  });
 
   // Check if user is admin or super admin
   const isAdminOrSuperAdmin = useMemo(() => {
@@ -549,7 +555,13 @@ export default function DashboardPage() {
                       {/* View toggle */}
                       <div className="flex items-center border border-[#E9E9E7] rounded-[4px] overflow-hidden">
                         <button
-                          onClick={() => setViewMode("table")}
+                          onClick={() => {
+                            setViewMode("table");
+                            localStorage.setItem(
+                              "timesheet-view-mode",
+                              "table"
+                            );
+                          }}
                           title="Table view"
                           className={`h-7 w-7 flex items-center justify-center transition-colors ${
                             viewMode === "table"
@@ -560,7 +572,10 @@ export default function DashboardPage() {
                           <List className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          onClick={() => setViewMode("grid")}
+                          onClick={() => {
+                            setViewMode("grid");
+                            localStorage.setItem("timesheet-view-mode", "grid");
+                          }}
                           title="Grid view"
                           className={`h-7 w-7 flex items-center justify-center transition-colors ${
                             viewMode === "grid"
