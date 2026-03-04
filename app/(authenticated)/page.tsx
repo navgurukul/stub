@@ -3,7 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
@@ -216,6 +222,7 @@ export default function DashboardPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   // Check if user is admin or super admin
   const isAdminOrSuperAdmin = useMemo(() => {
@@ -535,11 +542,35 @@ export default function DashboardPage() {
                         Timesheet
                       </h2>
                       <p className="text-sm text-[#9B9A97] break-all">
-                        {user?.name || "User Name"} ·{" "}
                         {user?.email || "user@example.com"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+                      {/* View toggle */}
+                      <div className="flex items-center border border-[#E9E9E7] rounded-[4px] overflow-hidden">
+                        <button
+                          onClick={() => setViewMode("table")}
+                          title="Table view"
+                          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                            viewMode === "table"
+                              ? "bg-[#37352F] text-white"
+                              : "bg-transparent hover:bg-[#F7F7F5] text-[#37352F]"
+                          }`}
+                        >
+                          <List className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setViewMode("grid")}
+                          title="Grid view"
+                          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                            viewMode === "grid"
+                              ? "bg-[#37352F] text-white"
+                              : "bg-transparent hover:bg-[#F7F7F5] text-[#37352F]"
+                          }`}
+                        >
+                          <LayoutGrid className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                       <button
                         onClick={handlePreviousMonth}
                         disabled={isLoading}
@@ -588,12 +619,193 @@ export default function DashboardPage() {
                       Retry
                     </Button>
                   </div>
-                ) : timesheetRows.length === 0 ? (
+                ) : timesheetRows.length === 0 && viewMode === "table" ? (
                   <div className="text-center py-16 bg-white rounded-[4px] border border-[#E9E9E7]">
                     <p className="text-[#9B9A97] text-sm">
                       No records found for this month
                     </p>
                   </div>
+                ) : viewMode === "grid" ? (
+                  /* Grid View — built from raw monthlyData.days so unfilled days appear too */
+                  (() => {
+                    const sortedGridDays = [...(monthlyData?.days ?? [])].sort(
+                      (a, b) =>
+                        new Date(a.date).getTime() - new Date(b.date).getTime()
+                    );
+
+                    const todayMidnight = new Date();
+                    todayMidnight.setHours(0, 0, 0, 0);
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {sortedGridDays.map((day) => {
+                          const parsedDate = parseISO(day.date);
+                          const dayOfWeek = format(parsedDate, "EEEE");
+                          const displayDate = format(parsedDate, "dd/MM/yyyy");
+                          const dayOfMonth = parsedDate.getDate();
+                          const weekOfMonth = Math.ceil(dayOfMonth / 7);
+                          const isSaturday = dayOfWeek === "Saturday";
+                          const is2ndOr4thSaturday =
+                            isSaturday &&
+                            (weekOfMonth === 2 || weekOfMonth === 4);
+                          const isSunday = dayOfWeek === "Sunday";
+                          const isWeekendOff = is2ndOr4thSaturday || isSunday;
+
+                          const hasTimesheet =
+                            (day.timesheet?.entries?.length ?? 0) > 0;
+                          const hasLeave =
+                            (day.leaves?.entries?.length ?? 0) > 0;
+                          const isOff = isWeekendOff || day.isHoliday;
+                          const isUnfilled =
+                            !hasTimesheet && !hasLeave && !isOff;
+
+                          const isToday =
+                            parsedDate.getFullYear() ===
+                              todayMidnight.getFullYear() &&
+                            parsedDate.getMonth() ===
+                              todayMidnight.getMonth() &&
+                            parsedDate.getDate() === todayMidnight.getDate();
+
+                          // Card background
+                          let cardBg = "#FFFFFF";
+                          if (isUnfilled) cardBg = "#FAFAFA";
+                          else if (day.timesheet?.state === "rejected")
+                            cardBg = "#FDEAEA";
+                          else if (isOff) cardBg = "#E6F4EA";
+
+                          const timesheetEntries = day.timesheet?.entries ?? [];
+                          const leaveEntries = day.leaves?.entries ?? [];
+                          const totalHours =
+                            timesheetEntries.reduce((s, e) => s + e.hours, 0) +
+                            leaveEntries.reduce((s, e) => s + e.hours, 0);
+
+                          let offLabel = "";
+                          if (day.isHoliday)
+                            offLabel = day.holidayName
+                              ? `Holiday — ${day.holidayName}`
+                              : "Holiday";
+                          else if (isSunday) offLabel = "Sunday";
+                          else if (is2ndOr4thSaturday)
+                            offLabel = "Saturday (Off)";
+
+                          return (
+                            <div
+                              key={day.date}
+                              className="rounded-[6px] overflow-hidden"
+                              style={{
+                                backgroundColor: cardBg,
+                                border: isToday
+                                  ? "1.5px solid #6B6864"
+                                  : "1px solid #E9E9E7",
+                              }}
+                            >
+                              {/* Card header */}
+                              <div className="px-3 py-2 border-b border-[#E9E9E7] flex items-center justify-between">
+                                <div>
+                                  <p className="text-xs font-semibold text-[#37352F]">
+                                    {displayDate}
+                                  </p>
+                                  <p className="text-xs text-[#9B9A97]">
+                                    {dayOfWeek}
+                                  </p>
+                                </div>
+                                {totalHours > 0 && (
+                                  <span className="text-xs font-bold text-[#37352F]">
+                                    {totalHours}h
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Body */}
+                              <div className="divide-y divide-[#E9E9E7]">
+                                {isOff && !hasTimesheet && !hasLeave && (
+                                  <div className="px-3 py-2">
+                                    <p className="text-xs text-[#9B9A97]">
+                                      {offLabel}
+                                    </p>
+                                  </div>
+                                )}
+                                {isUnfilled && (
+                                  <div className="px-3 py-2">
+                                    <p className="text-xs text-[#9B9A97] italic">
+                                      No entry
+                                    </p>
+                                  </div>
+                                )}
+                                {timesheetEntries.map((entry, i) => (
+                                  <div
+                                    key={`ts-${i}`}
+                                    className="px-3 py-2 space-y-0.5"
+                                  >
+                                    <p className="text-xs font-medium text-[#37352F] truncate">
+                                      {entry.projectName || "-"}
+                                    </p>
+                                    <p className="text-xs text-[#9B9A97] line-clamp-2">
+                                      {entry.taskDescription || "-"}
+                                    </p>
+                                    <div className="flex items-center justify-between pt-0.5">
+                                      <span className="text-xs text-[#9B9A97]">
+                                        {entry.hours}h
+                                      </span>
+                                      {day.timesheet?.state === "rejected" && (
+                                        <span className="text-xs text-[#C2312B] font-medium">
+                                          Rejected
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                {leaveEntries.map((entry, i) => {
+                                  const leaveStatus =
+                                    (entry as any).state === "rejected"
+                                      ? "rejected"
+                                      : (entry as any).state === "pending"
+                                      ? "pending"
+                                      : "approved";
+                                  const leaveBg =
+                                    leaveStatus === "rejected"
+                                      ? "#FDEAEA"
+                                      : leaveStatus === "pending"
+                                      ? "#FBF3DB"
+                                      : undefined;
+                                  return (
+                                    <div
+                                      key={`lv-${i}`}
+                                      className="px-3 py-2 space-y-0.5"
+                                      style={
+                                        leaveBg
+                                          ? { backgroundColor: leaveBg }
+                                          : undefined
+                                      }
+                                    >
+                                      <p className="text-xs font-medium text-[#37352F] truncate">
+                                        Leave — {entry.leaveType.name}
+                                      </p>
+                                      <div className="flex items-center justify-between pt-0.5">
+                                        <span className="text-xs text-[#9B9A97]">
+                                          {entry.hours}h
+                                        </span>
+                                        {leaveStatus === "pending" && (
+                                          <span className="text-xs text-[#CB8907] font-medium">
+                                            Pending
+                                          </span>
+                                        )}
+                                        {leaveStatus === "rejected" && (
+                                          <span className="text-xs text-[#C2312B] font-medium">
+                                            Rejected
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <>
                     {/* Desktop Table */}
