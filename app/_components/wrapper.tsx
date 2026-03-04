@@ -1,13 +1,13 @@
 import { cn } from "@/lib/utils";
 
-interface PageWrapperProps {
+interface PageWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-function PageWrapper({ children }: PageWrapperProps) {
+function PageWrapper({ children, className, ...props }: PageWrapperProps) {
   return (
-    <div className="min-h-dvh bg-[#F7F7F5] p-6">
-      <div className="mx-auto text-[#37352F] text-left">{children}</div>
+    <div className={cn("min-h-dvh bg-[#F7F7F5] p-6", className)} {...props}>
+      <div className="mx-auto h-full text-[#37352F] text-left">{children}</div>
     </div>
   );
 }
