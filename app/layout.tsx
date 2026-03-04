@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./_components/AuthProvider";
-import { ThemeProvider } from "./_components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -25,9 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${ibmPlexMono.variable} antialiased`}>
-        <AuthProvider>
-          <ThemeProvider>{children}</ThemeProvider>
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
         <Toaster />
       </body>
     </html>

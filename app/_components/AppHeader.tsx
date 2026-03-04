@@ -2,8 +2,6 @@
 
 import { Fragment } from "react";
 
-import { Moon, Sun } from "lucide-react";
-
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,10 +10,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/hooks/use-theme";
 
 export type Crumb = {
   label: string;
@@ -30,7 +26,6 @@ interface AppHeaderProps {
 
 export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
   const lastIndex = crumbs.length - 1;
-  const { effectiveTheme, toggleTheme } = useTheme();
 
   return (
     <header
@@ -71,24 +66,7 @@ export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="ml-auto px-3 flex items-center gap-1">
-        {right}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 p-0 text-[#9B9A97] hover:text-[#37352F] hover:bg-[#F7F7F5]"
-          onClick={toggleTheme}
-        >
-          <Sun
-            className="hidden dark:inline"
-            style={{ width: 16, height: 16 }}
-          />
-          <Moon
-            className="inline dark:hidden"
-            style={{ width: 16, height: 16 }}
-          />
-        </Button>
-      </div>
+      <div className="ml-auto px-3 flex items-center gap-1">{right}</div>
     </header>
   );
 }
