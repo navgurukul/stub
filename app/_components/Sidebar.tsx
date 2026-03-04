@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarSync,
   ChevronDown,
+  Command,
   FolderKanban,
   LayoutDashboard,
   LogOut,
@@ -155,7 +156,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
               <div className="flex items-center justify-center size-6 rounded-[4px] bg-[#37352F] text-white flex-shrink-0">
-                <span className="text-xs font-bold leading-none">S</span>
+                <Command className="size-4" />
               </div>
               <Link
                 href="/"

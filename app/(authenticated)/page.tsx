@@ -160,7 +160,9 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
             <button onClick={onPreviousMonth} className="mr-2 cursor-pointer">
               Previous
             </button>
-            <button onClick={onNextMonth} className="cursor-pointer">Next</button>
+            <button onClick={onNextMonth} className="cursor-pointer">
+              Next
+            </button>
           </div>
           <div className="text-sm">{format(currentMonth, "MMMM yyyy")}</div>
         </div>
