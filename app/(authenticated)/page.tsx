@@ -144,7 +144,7 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
       <Card>
         <CardContent>
           <div className="text-red-600">Error: {error}</div>
-          <button onClick={onRetry} className="mt-2 underline">
+          <button onClick={onRetry} className="mt-2 underline cursor-pointer">
             Retry
           </button>
         </CardContent>
@@ -157,10 +157,10 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
       <CardContent>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <button onClick={onPreviousMonth} className="mr-2">
+            <button onClick={onPreviousMonth} className="mr-2 cursor-pointer">
               Previous
             </button>
-            <button onClick={onNextMonth}>Next</button>
+            <button onClick={onNextMonth} className="cursor-pointer">Next</button>
           </div>
           <div className="text-sm">{format(currentMonth, "MMMM yyyy")}</div>
         </div>
@@ -563,7 +563,7 @@ export default function DashboardPage() {
                             );
                           }}
                           title="Table view"
-                          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                          className={`h-7 w-7 flex items-center justify-center transition-colors cursor-pointer ${
                             viewMode === "table"
                               ? "bg-[#37352F] text-white"
                               : "bg-transparent hover:bg-[#F7F7F5] text-[#37352F]"
@@ -577,7 +577,7 @@ export default function DashboardPage() {
                             localStorage.setItem("timesheet-view-mode", "grid");
                           }}
                           title="Grid view"
-                          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                          className={`h-7 w-7 flex items-center justify-center transition-colors cursor-pointer ${
                             viewMode === "grid"
                               ? "bg-[#37352F] text-white"
                               : "bg-transparent hover:bg-[#F7F7F5] text-[#37352F]"
@@ -589,7 +589,7 @@ export default function DashboardPage() {
                       <button
                         onClick={handlePreviousMonth}
                         disabled={isLoading}
-                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
                         <ChevronLeft className="h-4 w-4 text-[#37352F]" />
                       </button>
@@ -611,7 +611,7 @@ export default function DashboardPage() {
                       <button
                         onClick={handleNextMonth}
                         disabled={isLoading}
-                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
                         <ChevronRight className="h-4 w-4 text-[#37352F]" />
                       </button>

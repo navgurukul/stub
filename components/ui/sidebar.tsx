@@ -473,7 +473,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden outline-2 outline-transparent rounded-[4px] p-2 text-left text-sm text-[#37352F] ring-ring transition-[width,height,padding] hover:bg-[#F7F7F5] hover:text-[#37352F] focus-visible:outline-border focus-visible:text-[#37352F] focus-visible:bg-[#F7F7F5] disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-[#F7F7F5] data-[active=true]:text-[#37352F]",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden outline-2 outline-transparent rounded-[4px] p-2 text-left text-sm text-[#37352F] ring-ring transition-[width,height,padding] hover:bg-[#F7F7F5] hover:text-[#37352F] focus-visible:outline-border focus-visible:text-[#37352F] focus-visible:bg-[#F7F7F5] disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-[#F7F7F5] data-[active=true]:text-[#37352F] cursor-pointer",
   {
     variants: {
       size: {
@@ -553,7 +553,7 @@ function SidebarMenuAction({
       data-slot="sidebar-menu-action"
       data-sidebar="menu-action"
       className={cn(
-        "[&_svg]:text-[#9B9A97] hover:[&_svg]:text-[#37352F] text-[#37352F] hover:bg-[#F7F7F5] outline-transparent outline-2 absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-[4px] p-0 transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+        "[&_svg]:text-[#9B9A97] hover:[&_svg]:text-[#37352F] text-[#37352F] hover:bg-[#F7F7F5] outline-transparent outline-2 absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-[4px] p-0 transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 cursor-pointer",
         // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 md:after:hidden",
         "peer-data-[size=sm]/menu-button:top-1",
@@ -676,7 +676,7 @@ function SidebarMenuSubButton({
       data-size={size}
       data-active={isActive}
       className={cn(
-        "text-[#37352F] hover:bg-[#F7F7F5] hover:text-[#37352F] active:bg-[#F7F7F5] outline-transparent outline-2 flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-[4px] px-2 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+        "text-[#37352F] hover:bg-[#F7F7F5] hover:text-[#37352F] active:bg-[#F7F7F5] outline-transparent outline-2 flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-[4px] px-2 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 cursor-pointer",
         "data-[active=true]:bg-[#F7F7F5] data-[active=true]:text-[#37352F]",
         size === "sm" && "text-xs",
         size === "md" && "text-sm",
