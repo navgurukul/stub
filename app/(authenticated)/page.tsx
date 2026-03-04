@@ -30,7 +30,7 @@ interface LeaveEntry {
     code?: string;
   };
   hours: number;
-  state?: string; 
+  state?: string;
 }
 
 interface DayData {
@@ -38,7 +38,7 @@ interface DayData {
   isWorkingDay: boolean;
   isWeekend: boolean;
   isHoliday: boolean;
-  holidayName?: string; 
+  holidayName?: string;
   timesheet: {
     id: number;
     state: string;
@@ -83,8 +83,8 @@ interface TimesheetRow {
   isLeave: boolean;
   isWeekend: boolean;
   isHoliday: boolean;
-  holidayName?: string; 
-  leaveStatus?: 'approved' | 'pending' | 'rejected';
+  holidayName?: string;
+  leaveStatus?: "approved" | "pending" | "rejected";
   timesheetState?: string;
 }
 
@@ -166,7 +166,10 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
             <tbody>
               {timesheetRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-4 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="py-4 text-center text-muted-foreground"
+                  >
                     No records for this month.
                   </td>
                 </tr>
@@ -194,10 +197,11 @@ export default function DashboardPage() {
   const { isLoading: authLoading, user } = useAuth();
   const [currentMonth, setCurrentMonth] = useState<Date>(() => {
     const date = new Date();
-    date.setMonth(date.getMonth() - 1); 
+    date.setMonth(date.getMonth() - 1);
     return date;
   });
-  const [monthlyData, setMonthlyData] = useState<MonthlyTimesheetResponse | null>(null);
+  const [monthlyData, setMonthlyData] =
+    useState<MonthlyTimesheetResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchIdRef = useRef(0);
@@ -206,16 +210,16 @@ export default function DashboardPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   // Check if user is admin or super admin
-    const isAdminOrSuperAdmin = useMemo(() => {
-      const roles = (user as any)?.roles;
-      if (Array.isArray(roles)) {
-        return roles.includes("admin") || roles.includes("super_admin");
-      }
-      if (typeof roles === "string") {
-        return roles === "admin" || roles === "super_admin";
-      }
-      return false;
-    }, [user]);
+  const isAdminOrSuperAdmin = useMemo(() => {
+    const roles = (user as any)?.roles;
+    if (Array.isArray(roles)) {
+      return roles.includes("admin") || roles.includes("super_admin");
+    }
+    if (typeof roles === "string") {
+      return roles === "admin" || roles === "super_admin";
+    }
+    return false;
+  }, [user]);
 
   // Fetch timesheet data
   useEffect(() => {
@@ -279,7 +283,8 @@ export default function DashboardPage() {
       const dayOfMonth = parsedDate.getDate();
       const weekOfMonth = Math.ceil(dayOfMonth / 7);
       const isSaturday = dayOfWeek === "Saturday";
-      const is2ndOr4thSaturday = isSaturday && (weekOfMonth === 2 || weekOfMonth === 4);
+      const is2ndOr4thSaturday =
+        isSaturday && (weekOfMonth === 2 || weekOfMonth === 4);
       const isSunday = dayOfWeek === "Sunday";
       const isWeekendOff = is2ndOr4thSaturday || isSunday;
 
@@ -304,9 +309,12 @@ export default function DashboardPage() {
       // Add leave entries
       if (day.leaves?.entries && day.leaves.entries.length > 0) {
         day.leaves.entries.forEach((entry) => {
-          const leaveStatus = (entry as any).state === 'rejected' ? 'rejected' :
-            (entry as any).state === 'pending' ? 'pending' :
-              'approved';
+          const leaveStatus =
+            (entry as any).state === "rejected"
+              ? "rejected"
+              : (entry as any).state === "pending"
+              ? "pending"
+              : "approved";
 
           rows.push({
             sno: sno++,
@@ -329,13 +337,15 @@ export default function DashboardPage() {
         (!day.timesheet?.entries || day.timesheet.entries.length === 0) &&
         (!day.leaves?.entries || day.leaves.entries.length === 0)
       ) {
-        let offType = '';
+        let offType = "";
         if (day.isHoliday) {
-          offType = day.holidayName ? `Holiday (${day.holidayName})` : 'Holiday';
+          offType = day.holidayName
+            ? `Holiday (${day.holidayName})`
+            : "Holiday";
         } else if (isSunday) {
-          offType = 'Sunday';
+          offType = "Sunday";
         } else if (is2ndOr4thSaturday) {
-          offType = 'Saturday (Off)';
+          offType = "Saturday (Off)";
         }
 
         rows.push({
@@ -368,7 +378,7 @@ export default function DashboardPage() {
     const start = parseISO(monthlyData.period.start);
     const end = parseISO(monthlyData.period.end);
     const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     return diffDays;
   }, [monthlyData]);
 
@@ -444,100 +454,112 @@ export default function DashboardPage() {
       <PageWrapper>
         <div className="flex w-full justify-center p-4">
           <div className="w-full max-w-7xl space-y-6">
-             {/* Header for Statistics - Data cycle info */}
+            {/* Header for Statistics - Data cycle info */}
             <div className="mb-3">
-              <p className="text-base font-bold text-gray-900">
+              <p className="text-sm text-[#9B9A97]">
                 Data shown is according to cycle: 26th to 25th of the month
               </p>
             </div>
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-2 border-black">
+              <Card className="border border-[#E9E9E7]">
                 <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
                       Total Hours Logged
                     </p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-3xl font-bold text-[#37352F]">
                       {monthlyData?.totals.timesheetHours || 0}
                     </p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-black">
+              <Card className="border border-[#E9E9E7]">
                 <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
                       Leave Days
                     </p>
-                    <p className="text-3xl font-bold">{leaveDaysDisplay}</p>
+                    <p className="text-3xl font-bold text-[#37352F]">
+                      {leaveDaysDisplay}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-black">
+              <Card className="border border-[#E9E9E7]">
                 <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
                       Lifelines Remaining
                     </p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-3xl font-bold text-[#37352F]">
                       {user?.backfill?.remaining ?? 0}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#9B9A97]">
                       out of {user?.backfill?.limit ?? 0} available
                     </p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-black">
+              <Card className="border border-[#E9E9E7]">
                 <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
                       Total Payable Days
                     </p>
-                    <p className="text-3xl font-bold">{payableDays}/{totalCycleDays}</p>
+                    <p className="text-3xl font-bold text-[#37352F]">
+                      {payableDays}/{totalCycleDays}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Timesheet Table View */}
-            <Card className="border-2 border-black shadow-lg">
+            <Card className="border border-[#E9E9E7] shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
               <CardContent className="p-4 sm:p-6">
                 {/* Header Section */}
                 <div className="mb-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                    <div className="space-y-1">
-                      <h2 className="text-xl font-bold text-gray-900">
-                         Timesheet 
+                    <div className="space-y-0.5">
+                      <h2 className="text-xl font-semibold text-[#37352F]">
+                        Timesheet
                       </h2>
-                      <p className="text-sm font-medium text-gray-800 break-all">
-                        {user?.name || "User Name"} · {user?.email || "user@example.com"}
+                      <p className="text-sm text-[#9B9A97] break-all">
+                        {user?.name || "User Name"} ·{" "}
+                        {user?.email || "user@example.com"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
                       <button
                         onClick={handlePreviousMonth}
                         disabled={isLoading}
-                        className="h-10 w-10 bg-transparent hover:bg-black/5 border-2 border-black rounded flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
-                        <ChevronLeft className="h-5 w-5 text-black" />
+                        <ChevronLeft className="h-4 w-4 text-[#37352F]" />
                       </button>
-                      <div className="text-center px-2 sm:px-6 py-2">
+                      <div className="text-center px-3 py-1.5 rounded-[4px] border border-[#E9E9E7] bg-white">
                         {monthlyData?.period && (
-                          <p className="text-xs text-black whitespace-nowrap">
-                            {format(parseISO(monthlyData.period.start), "dd/MM/yyyy")} -{" "}
-                            {format(parseISO(monthlyData.period.end), "dd/MM/yyyy")}
+                          <p className="text-xs text-[#9B9A97] whitespace-nowrap">
+                            {format(
+                              parseISO(monthlyData.period.start),
+                              "dd/MM/yyyy"
+                            )}{" "}
+                            -{" "}
+                            {format(
+                              parseISO(monthlyData.period.end),
+                              "dd/MM/yyyy"
+                            )}
                           </p>
                         )}
                       </div>
                       <button
                         onClick={handleNextMonth}
                         disabled={isLoading}
-                        className="h-10 w-10 bg-transparent hover:bg-black/5 border-2 border-black rounded flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
-                        <ChevronRight className="h-5 w-5 text-black" />
+                        <ChevronRight className="h-4 w-4 text-[#37352F]" />
                       </button>
                     </div>
                   </div>
@@ -545,48 +567,52 @@ export default function DashboardPage() {
 
                 {/* Table Section */}
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-16 bg-white rounded-lg">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                  <div className="flex items-center justify-center py-16 bg-white rounded-[4px]">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#E9E9E7] border-t-[#37352F]"></div>
                   </div>
                 ) : error ? (
-                  <div className="text-center py-16 bg-white rounded-lg">
-                    <p className="text-red-600 mb-4">{error}</p>
+                  <div className="text-center py-16 bg-white rounded-[4px]">
+                    <p className="text-[#C2312B] mb-4 text-sm">{error}</p>
                     <Button
+                      variant="outline"
                       onClick={() => setCurrentMonth(new Date(currentMonth))}
                     >
                       Retry
                     </Button>
                   </div>
                 ) : timesheetRows.length === 0 ? (
-                  <div className="text-center py-16 bg-white rounded-lg border-2 border-gray-900">
-                    <p className="text-gray-500 text-lg">
+                  <div className="text-center py-16 bg-white rounded-[4px] border border-[#E9E9E7]">
+                    <p className="text-[#9B9A97] text-sm">
                       No records found for this month
                     </p>
                   </div>
                 ) : (
                   <>
                     {/* Desktop Table */}
-                    <div className="hidden md:block border-2 border-gray-900 rounded-lg overflow-hidden bg-white shadow-lg">
-                      <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: "calc(100vh - 500px)" }}>
+                    <div className="hidden md:block border border-[#E9E9E7] rounded-[4px] overflow-hidden bg-white">
+                      <div
+                        className="overflow-x-auto overflow-y-auto"
+                        style={{ maxHeight: "calc(100vh - 500px)" }}
+                      >
                         <table className="w-full border-collapse">
-                          <thead className="sticky top-0 bg-gray-200 z-10 border-b-2 border-gray-900">
+                          <thead className="sticky top-0 bg-[#F7F7F5] z-10 border-b border-[#E9E9E7]">
                             <tr>
-                              <th className="px-3 py-3 text-left text-sm font-bold text-gray-900 whitespace-nowrap w-16">
+                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-16">
                                 Sr
                               </th>
-                              <th className="px-3 py-3 text-left text-sm font-bold text-gray-900 whitespace-nowrap w-32">
+                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-32">
                                 Project
                               </th>
-                              <th className="px-3 py-3 text-left text-sm font-bold text-gray-900 whitespace-nowrap w-28">
+                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-28">
                                 Date
                               </th>
-                              <th className="px-3 py-3 text-left text-sm font-bold text-gray-900 whitespace-nowrap w-28">
+                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-28">
                                 Day
                               </th>
-                              <th className="px-3 py-3 text-center text-sm font-bold text-gray-900 whitespace-nowrap w-20">
+                              <th className="px-3 py-2.5 text-center text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-20">
                                 Hours
                               </th>
-                              <th className="px-3 py-3 text-left text-sm font-bold text-gray-900">
+                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
                                 Activities
                               </th>
                             </tr>
@@ -594,52 +620,61 @@ export default function DashboardPage() {
                           <tbody className="bg-white">
                             {timesheetRows.map((row, index) => {
                               let bgColor = undefined;
-                              
+
                               if (
-                                (row.isLeave && row.leaveStatus === 'rejected') ||
-                                (row.timesheetState === 'rejected')
+                                (row.isLeave &&
+                                  row.leaveStatus === "rejected") ||
+                                row.timesheetState === "rejected"
                               ) {
-                                bgColor = '#F5B5B5';
-                              } else if (row.isLeave && row.leaveStatus === 'pending') {
-                                bgColor = '#FFF3B0';
+                                bgColor = "#FDEAEA";
+                              } else if (
+                                row.isLeave &&
+                                row.leaveStatus === "pending"
+                              ) {
+                                bgColor = "#FBF3DB";
                               } else if (
                                 row.isHoliday ||
                                 row.isWeekend ||
-                                (row.isLeave && row.leaveStatus === 'approved')
+                                (row.isLeave && row.leaveStatus === "approved")
                               ) {
-                                bgColor = '#B7E4C7';
+                                bgColor = "#E6F4EA";
                               } else {
-                                bgColor = index % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                                bgColor =
+                                  index % 2 === 0 ? "#FFFFFF" : "#F7F7F5";
                               }
 
                               return (
                                 <tr
                                   key={`${row.date}-${index}`}
-                                  className="hover:bg-blue-50 transition-colors border-b border-gray-300"
+                                  className="hover:bg-[#F7F7F5] transition-colors border-b border-[#E9E9E7] last:border-b-0"
                                   style={{ backgroundColor: bgColor }}
                                 >
-                                  <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 text-sm text-[#9B9A97] whitespace-nowrap">
                                     {row.sno}
                                   </td>
-                                  <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
                                     {row.project}
                                   </td>
-                                  <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
                                     {row.date}
                                   </td>
-                                  <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
                                     {row.day}
                                   </td>
-                                  <td className="px-3 py-3 text-sm text-gray-900 text-center font-medium whitespace-nowrap">
+                                  <td className="px-3 py-2.5 text-sm text-[#37352F] text-center font-medium whitespace-nowrap">
                                     {row.hours}
                                   </td>
-                                  <td className="px-3 py-3 text-sm text-gray-900">
+                                  <td className="px-3 py-2.5 text-sm text-[#37352F]">
                                     {row.activities}
-                                    {row.leaveStatus === 'pending' && (
-                                      <span className="ml-2 text-xs text-amber-700 font-medium">(Pending)</span>
+                                    {row.leaveStatus === "pending" && (
+                                      <span className="ml-2 text-xs text-[#CB8907] font-medium">
+                                        (Pending)
+                                      </span>
                                     )}
-                                    {row.leaveStatus === 'rejected' && (
-                                      <span className="ml-2 text-xs text-red-700 font-medium">(Rejected)</span>
+                                    {row.leaveStatus === "rejected" && (
+                                      <span className="ml-2 text-xs text-[#C2312B] font-medium">
+                                        (Rejected)
+                                      </span>
                                     )}
                                   </td>
                                 </tr>
@@ -651,55 +686,72 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Mobile Card View */}
-                    <div className="md:hidden space-y-3 max-h-[60vh] overflow-y-auto">
+                    <div className="md:hidden space-y-2 max-h-[60vh] overflow-y-auto">
                       {timesheetRows.map((row, index) => {
                         let bgColor = undefined;
-                        
+
                         if (
-                          (row.isLeave && row.leaveStatus === 'rejected') ||
-                          (row.timesheetState === 'rejected')
+                          (row.isLeave && row.leaveStatus === "rejected") ||
+                          row.timesheetState === "rejected"
                         ) {
-                          bgColor = '#F5B5B5';
-                        } else if (row.isLeave && row.leaveStatus === 'pending') {
-                          bgColor = '#FFF3B0';
+                          bgColor = "#FDEAEA";
+                        } else if (
+                          row.isLeave &&
+                          row.leaveStatus === "pending"
+                        ) {
+                          bgColor = "#FBF3DB";
                         } else if (
                           row.isHoliday ||
                           row.isWeekend ||
-                          (row.isLeave && row.leaveStatus === 'approved')
+                          (row.isLeave && row.leaveStatus === "approved")
                         ) {
-                          bgColor = '#B7E4C7';
+                          bgColor = "#E6F4EA";
                         } else {
-                          bgColor = index % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                          bgColor = index % 2 === 0 ? "#FFFFFF" : "#F7F7F5";
                         }
 
                         return (
                           <div
                             key={`${row.date}-${index}`}
-                            className="border-2 border-gray-900 rounded-lg p-4 space-y-2"
+                            className="border border-[#E9E9E7] rounded-[4px] p-4 space-y-2"
                             style={{ backgroundColor: bgColor }}
                           >
                             <div className="flex justify-between items-start">
-                              <div className="space-y-1 flex-1">
-                                <p className="text-xs text-gray-500 font-medium">#{row.sno}</p>
-                                <p className="text-sm font-bold text-gray-900">{row.date} - {row.day}</p>
+                              <div className="space-y-0.5 flex-1">
+                                <p className="text-xs text-[#9B9A97]">
+                                  #{row.sno}
+                                </p>
+                                <p className="text-sm font-medium text-[#37352F]">
+                                  {row.date} - {row.day}
+                                </p>
                               </div>
                               <div className="text-right">
-                                <p className="text-2xl font-bold text-gray-900">{row.hours}h</p>
+                                <p className="text-xl font-bold text-[#37352F]">
+                                  {row.hours}h
+                                </p>
                               </div>
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-xs text-gray-500">Project</p>
-                              <p className="text-sm font-medium text-gray-900">{row.project}</p>
+                            <div className="space-y-0.5">
+                              <p className="text-xs text-[#9B9A97]">Project</p>
+                              <p className="text-sm text-[#37352F]">
+                                {row.project}
+                              </p>
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-xs text-gray-500">Activities</p>
-                              <p className="text-sm text-gray-900">
+                            <div className="space-y-0.5">
+                              <p className="text-xs text-[#9B9A97]">
+                                Activities
+                              </p>
+                              <p className="text-sm text-[#37352F]">
                                 {row.activities}
-                                {row.leaveStatus === 'pending' && (
-                                  <span className="ml-2 text-xs text-amber-700 font-medium">(Pending)</span>
+                                {row.leaveStatus === "pending" && (
+                                  <span className="ml-2 text-xs text-[#CB8907] font-medium">
+                                    (Pending)
+                                  </span>
                                 )}
-                                {row.leaveStatus === 'rejected' && (
-                                  <span className="ml-2 text-xs text-red-700 font-medium">(Rejected)</span>
+                                {row.leaveStatus === "rejected" && (
+                                  <span className="ml-2 text-xs text-[#C2312B] font-medium">
+                                    (Rejected)
+                                  </span>
                                 )}
                               </p>
                             </div>
@@ -715,4 +767,5 @@ export default function DashboardPage() {
         </div>
       </PageWrapper>
     </>
-  );}
+  );
+}

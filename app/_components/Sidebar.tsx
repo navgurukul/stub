@@ -1,18 +1,15 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import {
   CalendarSync,
-  ChevronRight,
-  ChevronsUpDown,
-  Command,
+  ChevronDown,
   FolderKanban,
   LayoutDashboard,
   LogOut,
-  Shield,
   Target,
   TreePalm,
   Users,
@@ -28,7 +25,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -37,7 +33,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -52,12 +47,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { rbacService } from "@/lib/rbac-service";
 import { Role, Permission, ROLES } from "@/lib/rbac-constants";
 import { debugUserAuthorization } from "@/lib/rbac-test-utils";
+import { cn } from "@/lib/utils";
 
 // Navigation item type
 interface NavItem {
   title: string;
   url: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{
+    className?: string;
+    style?: React.CSSProperties;
+  }>;
   requiredRoles?: Role[];
   requiredPermissions?: Permission[];
   requireAllRoles?: boolean;
@@ -108,34 +107,20 @@ const navLinks: NavItem[] = [
     title: "Employee Database",
     url: "/employees",
     icon: Users,
-    // No role requirement - accessible to everyone
   },
 ];
 
-const adminLinks: NavItem[] = [
-  // {
-  //   title: "Admin Dashboard",
-  //   url: "/admin/dashboard",
-  //   icon: LayoutDashboard,
-  //   requiredRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
-  // },
-  // {
-  //   title: "Access Control",
-  //   url: "/admin/access-control",
-  //   icon: Shield,
-  //   requiredRoles: [ROLES.SUPER_ADMIN],
-  // },
-];
+const adminLinks: NavItem[] = [];
+
+const ICON_SIZE = { width: 16, height: 16 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, state } = useSidebar();
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  // Get user initials for avatar fallback
   const userInitials = getUserInitials(user?.name);
 
-  // Filter navigation items based on user authorization
   const filteredNavLinks = useMemo(() => {
     if (process.env.NODE_ENV === "development" && user) {
       debugUserAuthorization(user);
@@ -159,89 +144,113 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [user]);
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="h-14 justify-center">
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-[#E9E9E7] bg-white"
+      {...props}
+    >
+      {/* Logo / Brand */}
+      <SidebarHeader className="h-11 justify-center px-3 border-b border-[#E9E9E7]">
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex align-center gap-2 text-sm group-data-[collapsible=icon]:p-0!">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-base">
-                <Command className="size-5" />
+            <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+              <div className="flex items-center justify-center size-6 rounded-[4px] bg-[#37352F] text-white flex-shrink-0">
+                <span className="text-xs font-bold leading-none">S</span>
               </div>
               <Link
                 href="/"
-                className="grid flex-1 text-left text-sm leading-tight"
-                title="STUB - Simple Tracking Until Better. We dont have satisfactory output tracking yet so until then we will do input tracking"
+                className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden"
+                title="S.T.U.B - Simple Tracking Until Better"
               >
-                <h1 className="truncate font-heading">S.T.U.B</h1>
-                <span className="truncate text-xs">Simple Tracking Until Better</span>
+                <span className="text-sm font-semibold text-[#37352F] truncate block">
+                  S.T.U.B
+                </span>
+                <span className="text-xs text-[#9B9A97] truncate block">
+                  Simple Tracking Until Better
+                </span>
               </Link>
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
+
+      <SidebarContent className="px-2 py-2">
+        <SidebarGroup className="p-0">
+          <SidebarMenu className="gap-0.5">
             {filteredNavLinks.map((item) =>
               item.items && item.items.length > 0 ? (
                 state === "collapsed" ? (
-                  // In collapsed mode, use dropdown menu for items with sub-items
-                  <SidebarMenuItem key={item.title} className="mt-2">
+                  <SidebarMenuItem key={item.title}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                           isActive={isParentActive(item, pathname)}
                           tooltip={item.title}
+                          className={cn(
+                            "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                            isParentActive(item, pathname) &&
+                              "bg-[#F7F7F5] font-medium text-[#37352F]"
+                          )}
                         >
-                          {item.icon && <item.icon />}
+                          {item.icon && <item.icon style={ICON_SIZE} />}
                           <span>{item.title}</span>
                         </SidebarMenuButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         side={isMobile ? "bottom" : "right"}
                         align="start"
-                        className="min-w-48"
+                        className="min-w-44 rounded-[4px] border border-[#E9E9E7] shadow-[0_1px_3px_rgba(0,0,0,0.1)] bg-white"
                       >
                         {item.items?.map((subItem) => (
-                          <DropdownMenuItem key={subItem.title} asChild>
-                            <a href={subItem.url} className="cursor-pointer">
-                              {subItem.title}
-                            </a>
+                          <DropdownMenuItem
+                            key={subItem.title}
+                            asChild
+                            className="text-sm text-[#37352F] rounded-[4px] hover:bg-[#F7F7F5] cursor-pointer"
+                          >
+                            <a href={subItem.url}>{subItem.title}</a>
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </SidebarMenuItem>
                 ) : (
-                  // In expanded mode, use collapsible
                   <Collapsible
                     key={item.title}
                     asChild
                     defaultOpen={isParentActive(item, pathname)}
                     className="group/collapsible"
                   >
-                    <SidebarMenuItem className="mt-2">
+                    <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton
                           isActive={isParentActive(item, pathname)}
-                          className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
                           tooltip={item.title}
+                          className={cn(
+                            "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                            isParentActive(item, pathname) &&
+                              "bg-[#F7F7F5] font-medium text-[#37352F]"
+                          )}
                         >
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          {item.icon && <item.icon style={ICON_SIZE} />}
+                          <span className="flex-1">{item.title}</span>
+                          <ChevronDown
+                            style={{ width: 14, height: 14 }}
+                            className="text-[#9B9A97] transition-transform duration-150 group-data-[state=open]/collapsible:rotate-180"
+                          />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <SidebarMenuSub>
+                        <SidebarMenuSub className="ml-4 border-l border-[#E9E9E7] pl-2 mt-0.5 gap-0.5">
                           {item.items?.map((subItem) => (
-                            <SidebarMenuSubItem
-                              key={subItem.title}
-                              className="mt-2"
-                            >
+                            <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton
                                 asChild
                                 isActive={pathname === subItem.url}
+                                className={cn(
+                                  "rounded-[4px] h-7 px-2 text-sm text-[#9B9A97] hover:text-[#37352F] hover:bg-[#F7F7F5]",
+                                  pathname === subItem.url &&
+                                    "text-[#37352F] bg-[#F7F7F5] font-medium"
+                                )}
                               >
                                 <a href={subItem.url}>
                                   <span>{subItem.title}</span>
@@ -255,15 +264,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </Collapsible>
                 )
               ) : (
-                <SidebarMenuItem key={item.title} className="mt-2">
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === item.url}
-                    className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
                     tooltip={item.title}
+                    className={cn(
+                      "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                      pathname === item.url &&
+                        "bg-[#F7F7F5] font-medium text-[#37352F]"
+                    )}
                   >
                     <a href={item.url}>
-                      {item.icon && <item.icon />}
+                      {item.icon && <item.icon style={ICON_SIZE} />}
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
@@ -272,20 +285,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             )}
           </SidebarMenu>
         </SidebarGroup>
+
         {filteredAdminLinks.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
-            <SidebarMenu>
+          <SidebarGroup className="p-0 mt-4">
+            <p className="px-2 mb-1 text-xs font-medium text-[#9B9A97] uppercase tracking-wider">
+              Admin
+            </p>
+            <SidebarMenu className="gap-0.5">
               {filteredAdminLinks.map((item) => (
-                <SidebarMenuItem key={item.title} className="mt-2">
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === item.url}
-                    className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
                     tooltip={item.title}
+                    className={cn(
+                      "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                      pathname === item.url &&
+                        "bg-[#F7F7F5] font-medium text-[#37352F]"
+                    )}
                   >
                     <a href={item.url}>
-                      {item.icon && <item.icon />}
+                      {item.icon && <item.icon style={ICON_SIZE} />}
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
@@ -295,61 +315,70 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
       </SidebarContent>
-      <SidebarFooter>
+
+      {/* User Footer */}
+      <SidebarFooter className="border-t border-[#E9E9E7] px-2 py-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
-                  className="group-data-[state=collapsed]:hover:outline-0 group-data-[state=collapsed]:hover:bg-transparent overflow-visible"
+                  className="rounded-[4px] h-9 px-2 hover:bg-[#F7F7F5] w-full"
                   size="lg"
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-6 w-6 flex-shrink-0">
                     <AvatarImage
                       src={user?.avatarUrl || ""}
                       alt={user?.name || "User"}
                     />
-                    <AvatarFallback>{userInitials}</AvatarFallback>
+                    <AvatarFallback className="text-xs bg-[#F7F7F5] text-[#37352F] font-medium">
+                      {userInitials}
+                    </AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-heading">
+                  <div className="grid flex-1 text-left min-w-0 group-data-[collapsible=icon]:hidden">
+                    <span className="truncate text-sm font-medium text-[#37352F]">
                       {user?.name || "User"}
                     </span>
-                    <span className="truncate text-xs">
+                    <span className="truncate text-xs text-[#9B9A97]">
                       {user?.email || ""}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-8 group-data-[collapsible=icon]:hidden" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
+                className="w-56 rounded-[4px] border border-[#E9E9E7] shadow-[0_1px_3px_rgba(0,0,0,0.1)] bg-white"
                 side={isMobile ? "bottom" : "right"}
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="p-0 font-base">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={user?.avatarUrl || ""}
-                        alt={user?.name || "User"}
-                      />
-                      <AvatarFallback>{userInitials}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-heading">
-                        {user?.name || "User"}
-                      </span>
-                      <span className="truncate text-xs">
-                        {user?.email || ""}
-                      </span>
-                    </div>
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-[#E9E9E7]">
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage
+                      src={user?.avatarUrl || ""}
+                      alt={user?.name || "User"}
+                    />
+                    <AvatarFallback className="text-xs bg-[#F7F7F5] text-[#37352F]">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[#37352F] truncate">
+                      {user?.name || "User"}
+                    </p>
+                    <p className="text-xs text-[#9B9A97] truncate">
+                      {user?.email || ""}
+                    </p>
                   </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut />
+                </div>
+                <DropdownMenuSeparator className="bg-[#E9E9E7]" />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-sm text-[#37352F] rounded-[4px] hover:bg-[#F7F7F5] cursor-pointer mx-1 my-1"
+                >
+                  <LogOut
+                    style={{ width: 14, height: 14 }}
+                    className="text-[#9B9A97]"
+                  />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>

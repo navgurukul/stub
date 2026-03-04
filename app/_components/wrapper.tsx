@@ -6,8 +6,8 @@ interface PageWrapperProps {
 
 function PageWrapper({ children }: PageWrapperProps) {
   return (
-    <div className="min-h-dvh bg-[linear-gradient(to_right,#80808033_1px,transparent_1px),linear-gradient(to_bottom,#80808033_1px,transparent_1px)] bg-[size:70px_70px] p-5 prose-h4:xl:text-2xl prose-h4:lg:text-xl prose-h4:text-lg">
-      <div className="mx-auto text-foreground text-left">{children}</div>
+    <div className="min-h-dvh bg-[#F7F7F5] p-6">
+      <div className="mx-auto text-[#37352F] text-left">{children}</div>
     </div>
   );
 }
@@ -19,7 +19,7 @@ function PageHeading({
   return (
     <h1
       className={cn(
-        "font-heading text-center 2xl:text-5xl xl:text-4xl text-3xl",
+        "text-[30px] font-bold text-[#37352F] leading-tight",
         className
       )}
       {...props}
@@ -33,7 +33,7 @@ interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 
 function PageHeader({ children, className, ...props }: PageHeaderProps) {
   return (
-    <div className={cn("mb-10 flex flex-col gap-2", className)} {...props}>
+    <div className={cn("mb-8 flex flex-col gap-2", className)} {...props}>
       {children}
     </div>
   );
@@ -45,10 +45,7 @@ function PageDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn(
-        "font-base 2xl:text-3xl xl:text-2xl md:text-xl sm:text-xl text-base text-center",
-        className
-      )}
+      className={cn("text-[14px] text-[#9B9A97] leading-relaxed", className)}
       {...props}
     />
   );
@@ -60,10 +57,7 @@ function PageActions({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn(
-        "flex w-full items-center justify-center gap-2 pt-2",
-        className
-      )}
+      className={cn("flex w-full items-center gap-2 pt-2", className)}
       {...props}
     />
   );
