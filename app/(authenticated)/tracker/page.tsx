@@ -754,22 +754,26 @@ export default function TrackerPage() {
                     </Alert>
                   )}
 
-                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-4">
-                    <Button
-                      type="button"
-                      variant="noShadow"
-                      size="lg"
-                      onClick={addProjectEntry}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Project Entry
-                    </Button>
-                    <Button type="submit" size="lg" disabled={isSubmitting}>
-                      {isSubmitting
-                        ? "Submitting..."
-                        : "Submit Activity Logger"}
-                    </Button>
-                  </div>
+                  {/* <div className="flex flex-col gap-3 pb-4"> */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={addProjectEntry}
+                    className="self-start"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Project Entry
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={isSubmitting}
+                    className="w-full"
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Activity Logger"}
+                  </Button>
+                  {/* </div> */}
                 </form>
               </Form>
             </CardContent>

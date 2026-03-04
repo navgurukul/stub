@@ -601,16 +601,38 @@ export default function DashboardPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="whitespace-nowrap w-16">Sr</TableHead>
-                            <TableHead className="whitespace-nowrap w-32">Project</TableHead>
-                            <TableHead className="whitespace-nowrap w-28">Date</TableHead>
-                            <TableHead className="whitespace-nowrap w-28">Day</TableHead>
-                            <TableHead className="whitespace-nowrap w-20 text-center">Hours</TableHead>
+                            <TableHead className="whitespace-nowrap w-16">
+                              Sr
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap w-32">
+                              Project
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap w-28">
+                              Date
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap w-28">
+                              Day
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap w-20 text-center">
+                              Hours
+                            </TableHead>
                             <TableHead>Activities</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {timesheetRows.map((row, index) => {
+                            // Check if this row has the same date as the previous/next row
+                            const prevRow =
+                              index > 0 ? timesheetRows[index - 1] : null;
+                            const nextRow =
+                              index < timesheetRows.length - 1
+                                ? timesheetRows[index + 1]
+                                : null;
+                            const isSameDateAsPrev =
+                              prevRow && prevRow.date === row.date;
+                            const isSameDateAsNext =
+                              nextRow && nextRow.date === row.date;
+
                             let bgColor: string | undefined;
                             let isColored = false;
 
@@ -634,13 +656,18 @@ export default function DashboardPage() {
                               bgColor = "#E6F4EA";
                               isColored = true;
                             } else {
-                              bgColor = index % 2 === 0 ? "#FFFFFF" : "#F7F7F5";
+                              bgColor = "#FFFFFF";
                             }
 
                             return (
                               <TableRow
                                 key={`${row.date}-${index}`}
-                                style={{ backgroundColor: bgColor }}
+                                style={{
+                                  backgroundColor: bgColor,
+                                  borderBottom: isSameDateAsNext
+                                    ? "none"
+                                    : undefined,
+                                }}
                                 className={isColored ? "hover:opacity-95" : ""}
                               >
                                 <TableCell className="px-3 py-2.5 text-sm text-[#9B9A97] whitespace-nowrap">
@@ -650,10 +677,10 @@ export default function DashboardPage() {
                                   {row.project}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
-                                  {row.date}
+                                  {!isSameDateAsPrev ? row.date : ""}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
-                                  {row.day}
+                                  {!isSameDateAsPrev ? row.day : ""}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] text-center font-medium whitespace-nowrap">
                                   {row.hours}
@@ -681,6 +708,12 @@ export default function DashboardPage() {
                     {/* Mobile Card View */}
                     <div className="md:hidden space-y-2 max-h-[60vh] overflow-y-auto">
                       {timesheetRows.map((row, index) => {
+                        // Check if this row has the same date as the previous row
+                        const prevRow =
+                          index > 0 ? timesheetRows[index - 1] : null;
+                        const isSameDateAsPrev =
+                          prevRow && prevRow.date === row.date;
+
                         let bgColor = undefined;
 
                         if (
@@ -700,7 +733,7 @@ export default function DashboardPage() {
                         ) {
                           bgColor = "#E6F4EA";
                         } else {
-                          bgColor = index % 2 === 0 ? "#FFFFFF" : "#F7F7F5";
+                          bgColor = "#FFFFFF";
                         }
 
                         return (
@@ -714,9 +747,11 @@ export default function DashboardPage() {
                                 <p className="text-xs text-[#9B9A97]">
                                   #{row.sno}
                                 </p>
-                                <p className="text-sm font-medium text-[#37352F]">
-                                  {row.date} - {row.day}
-                                </p>
+                                {!isSameDateAsPrev && (
+                                  <p className="text-sm font-medium text-[#37352F]">
+                                    {row.date} - {row.day}
+                                  </p>
+                                )}
                               </div>
                               <div className="text-right">
                                 <p className="text-xl font-bold text-[#37352F]">
