@@ -13,6 +13,15 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import { EmptyState } from "./_components/EmptyState";
@@ -38,8 +47,30 @@ export default function ProjectManagementPage() {
 
 
   const [page, setPage] = useState<number>(1);
-  const [limit, setLimit] = useState<number>(25);
+  const [limit] = useState<number>(25);
   const [total, setTotal] = useState<number>(0);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(total / limit);
+  const showPagination = totalPages > 1;
+
+  const getPageNumbers = (): (number | "ellipsis")[] => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push("ellipsis");
+      const start = Math.max(2, page - 1);
+      const end = Math.min(totalPages - 1, page + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (page < totalPages - 2) pages.push("ellipsis");
+      if (totalPages > 1) pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const pageNumbers = getPageNumbers();
 
   const handleEditProject = (projectId: string) => {
     console.log("Edit project clicked:", projectId);
@@ -152,7 +183,7 @@ export default function ProjectManagementPage() {
       />
       <PageWrapper>
         <div className="flex w-full justify-center p-4">
-          <Card className="mx-auto w-full min-w-[120px] max-w-[95vw] sm:max-w-[640px] md:max-w-[900px] lg:max-w-[1200px] xl:max-w-[1000px]">
+          <Card className="mx-auto w-full min-w-[120px] max-w-[80vw] sm:max-w-xs md:max-w-lg lg:max-w-4xl xl:max-w-6xl">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -188,55 +219,73 @@ export default function ProjectManagementPage() {
                 />
 
                 {/* Projects Table */}
-                <div
-                  className="overflow-x-auto"
-                  onClick={() => console.log("div clicked", projects)}
-                >
-                  <div className="min-w-[900px] max-h-[60vh] overflow-auto">
-                    {loading ? (
-                      <LoadingState />
-                    ) : projects.length === 0 ? (
-                      <EmptyState />
-                    ) : (
-                      <ProjectsTable projects={projects} onEditProject={handleEditProject} />
-                    )}
-                  </div>
-                </div>
+                {loading ? (
+                  <LoadingState />
+                ) : projects.length === 0 ? (
+                  <EmptyState />
+                ) : (
+                  <ProjectsTable projects={projects} onEditProject={handleEditProject} />
+                )}
 
-                {/* Results Summary + Pagination */}
-                {!loading && (projects.length > 0 || total > 0) && (
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      {(() => {
-                        const start = total === 0 ? 0 : (page - 1) * limit + 1;
-                        const end = Math.min(page * limit, Math.max(total, projects.length));
-                        const totalDisplay = total || projects.length;
-                        return `Showing ${start}-${end} of ${totalDisplay} project${totalDisplay !== 1 ? "s" : ""}`;
-                      })()}
-                    </div>
+                {/* Pagination */}
+                {showPagination && !loading && projects.length > 0 && (
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => page > 1 && setPage(page - 1)}
+                          className={
+                            page === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                      {pageNumbers.map((pageNum, index) =>
+                        pageNum === "ellipsis" ? (
+                          <div
+                            key={`ellipsis-${index}`}
+                            className="items-center md:flex hidden"
+                          >
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          </div>
+                        ) : (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink
+                              onClick={() => setPage(pageNum)}
+                              isActive={page === pageNum}
+                              className="cursor-pointer"
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      )}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() =>
+                            page < totalPages && setPage(page + 1)
+                          }
+                          className={
+                            page === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
 
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page <= 1}
-                      >
-                        Previous
-                      </Button>
-
-                      <div className="px-2 text-sm">{page}</div>
-
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          const totalPages = Math.max(1, Math.ceil((total || projects.length) / limit));
-                          setPage((p) => Math.min(totalPages, p + 1));
-                        }}
-                        disabled={page * limit >= (total || projects.length)}
-                      >
-                        Next
-                      </Button>
-                    </div>
+                {/* Results Summary */}
+                {!loading && projects.length > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    Showing {(page - 1) * limit + 1}-
+                    {Math.min(page * limit, total || projects.length)} of{" "}
+                    {total || projects.length} project
+                    {(total || projects.length) !== 1 ? "s" : ""}
                   </div>
                 )}
               </div>

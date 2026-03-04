@@ -11,6 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import apiClient from "@/lib/api-client";
 import { API_PATHS, DATE_FORMATS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
@@ -589,100 +597,85 @@ export default function DashboardPage() {
                 ) : (
                   <>
                     {/* Desktop Table */}
-                    <div className="hidden md:block border border-[#E9E9E7] rounded-[4px] overflow-hidden bg-white">
-                      <div
-                        className="overflow-x-auto overflow-y-auto"
-                        style={{ maxHeight: "calc(100vh - 500px)" }}
-                      >
-                        <table className="w-full border-collapse">
-                          <thead className="sticky top-0 bg-[#F7F7F5] z-10 border-b border-[#E9E9E7]">
-                            <tr>
-                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-16">
-                                Sr
-                              </th>
-                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-32">
-                                Project
-                              </th>
-                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-28">
-                                Date
-                              </th>
-                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-28">
-                                Day
-                              </th>
-                              <th className="px-3 py-2.5 text-center text-xs font-medium text-[#9B9A97] uppercase tracking-wide whitespace-nowrap w-20">
-                                Hours
-                              </th>
-                              <th className="px-3 py-2.5 text-left text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
-                                Activities
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white">
-                            {timesheetRows.map((row, index) => {
-                              let bgColor = undefined;
+                    <div className="hidden md:block">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="whitespace-nowrap w-16">Sr</TableHead>
+                            <TableHead className="whitespace-nowrap w-32">Project</TableHead>
+                            <TableHead className="whitespace-nowrap w-28">Date</TableHead>
+                            <TableHead className="whitespace-nowrap w-28">Day</TableHead>
+                            <TableHead className="whitespace-nowrap w-20 text-center">Hours</TableHead>
+                            <TableHead>Activities</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {timesheetRows.map((row, index) => {
+                            let bgColor: string | undefined;
+                            let isColored = false;
 
-                              if (
-                                (row.isLeave &&
-                                  row.leaveStatus === "rejected") ||
-                                row.timesheetState === "rejected"
-                              ) {
-                                bgColor = "#FDEAEA";
-                              } else if (
-                                row.isLeave &&
-                                row.leaveStatus === "pending"
-                              ) {
-                                bgColor = "#FBF3DB";
-                              } else if (
-                                row.isHoliday ||
-                                row.isWeekend ||
-                                (row.isLeave && row.leaveStatus === "approved")
-                              ) {
-                                bgColor = "#E6F4EA";
-                              } else {
-                                bgColor =
-                                  index % 2 === 0 ? "#FFFFFF" : "#F7F7F5";
-                              }
+                            if (
+                              (row.isLeave && row.leaveStatus === "rejected") ||
+                              row.timesheetState === "rejected"
+                            ) {
+                              bgColor = "#FDEAEA";
+                              isColored = true;
+                            } else if (
+                              row.isLeave &&
+                              row.leaveStatus === "pending"
+                            ) {
+                              bgColor = "#FBF3DB";
+                              isColored = true;
+                            } else if (
+                              row.isHoliday ||
+                              row.isWeekend ||
+                              (row.isLeave && row.leaveStatus === "approved")
+                            ) {
+                              bgColor = "#E6F4EA";
+                              isColored = true;
+                            } else {
+                              bgColor = index % 2 === 0 ? "#FFFFFF" : "#F7F7F5";
+                            }
 
-                              return (
-                                <tr
-                                  key={`${row.date}-${index}`}
-                                  className="hover:bg-[#F7F7F5] transition-colors border-b border-[#E9E9E7] last:border-b-0"
-                                  style={{ backgroundColor: bgColor }}
-                                >
-                                  <td className="px-3 py-2.5 text-sm text-[#9B9A97] whitespace-nowrap">
-                                    {row.sno}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
-                                    {row.project}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
-                                    {row.date}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
-                                    {row.day}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-sm text-[#37352F] text-center font-medium whitespace-nowrap">
-                                    {row.hours}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-sm text-[#37352F]">
-                                    {row.activities}
-                                    {row.leaveStatus === "pending" && (
-                                      <span className="ml-2 text-xs text-[#CB8907] font-medium">
-                                        (Pending)
-                                      </span>
-                                    )}
-                                    {row.leaveStatus === "rejected" && (
-                                      <span className="ml-2 text-xs text-[#C2312B] font-medium">
-                                        (Rejected)
-                                      </span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                            return (
+                              <TableRow
+                                key={`${row.date}-${index}`}
+                                style={{ backgroundColor: bgColor }}
+                                className={isColored ? "hover:opacity-95" : ""}
+                              >
+                                <TableCell className="px-3 py-2.5 text-sm text-[#9B9A97] whitespace-nowrap">
+                                  {row.sno}
+                                </TableCell>
+                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+                                  {row.project}
+                                </TableCell>
+                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+                                  {row.date}
+                                </TableCell>
+                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+                                  {row.day}
+                                </TableCell>
+                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] text-center font-medium whitespace-nowrap">
+                                  {row.hours}
+                                </TableCell>
+                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F]">
+                                  {row.activities}
+                                  {row.leaveStatus === "pending" && (
+                                    <span className="ml-2 text-xs text-[#CB8907] font-medium">
+                                      (Pending)
+                                    </span>
+                                  )}
+                                  {row.leaveStatus === "rejected" && (
+                                    <span className="ml-2 text-xs text-[#C2312B] font-medium">
+                                      (Rejected)
+                                    </span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
                     </div>
 
                     {/* Mobile Card View */}

@@ -373,7 +373,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <DropdownMenuSeparator className="bg-[#E9E9E7]" />
                 <DropdownMenuItem
                   onClick={logout}
-                  className="text-sm text-[#37352F] rounded-[4px] hover:bg-[#F7F7F5] cursor-pointer mx-1 my-1"
+                  className="text-sm text-[#37352F] rounded-[4px] bg-[#F7F7F5] hover:bg-[#37352F] hover:text-[#F7F7F5] cursor-pointer mx-1 my-1"
                 >
                   <LogOut
                     style={{ width: 14, height: 14 }}
