@@ -766,7 +766,7 @@ export default function TrackerPage() {
                     className="self-start"
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Add Project Entry
+                    Add Another Project Activity
                   </Button>
                   <Button
                     type="submit"
