@@ -8,7 +8,7 @@
 // =============================================================================
 
 export const API = {
-  BASE_URL: "https://stub.navgurukul.org/api",
+  BASE_URL: "https://navtrack.navgurukul.org/api",
   TIMEOUT_MS: 10000,
 } as const;
 
