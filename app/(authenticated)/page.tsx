@@ -833,14 +833,14 @@ export default function DashboardPage() {
                             <TableHead className="whitespace-nowrap w-16">
                               Sr
                             </TableHead>
-                            <TableHead className="whitespace-nowrap w-32">
-                              Project
-                            </TableHead>
                             <TableHead className="whitespace-nowrap w-28">
                               Date
                             </TableHead>
                             <TableHead className="whitespace-nowrap w-28">
                               Day
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap w-32">
+                              Project
                             </TableHead>
                             <TableHead className="whitespace-nowrap w-20 text-center">
                               Hours
@@ -902,14 +902,15 @@ export default function DashboardPage() {
                                 <TableCell className="px-3 py-2.5 text-sm text-[#9B9A97] whitespace-nowrap">
                                   {row.sno}
                                 </TableCell>
-                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
-                                  {row.project}
-                                </TableCell>
+                               
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
                                   {!isSameDateAsPrev ? row.date : ""}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
                                   {!isSameDateAsPrev ? row.day : ""}
+                                </TableCell>
+                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+                                  {row.project}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] text-center font-medium whitespace-nowrap">
                                   {row.hours}

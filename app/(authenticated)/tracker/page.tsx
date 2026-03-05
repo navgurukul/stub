@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
+import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -66,6 +66,7 @@ import {
 } from "@/lib/leave-timesheet-validator";
 
 export default function TrackerPage() {
+  const router = useRouter();
   // Get authenticated user data
   const { user, isLoading, refreshUser } = useAuth();
 
@@ -367,10 +368,12 @@ export default function TrackerPage() {
         invalidateMonthlyTimesheetCache(activityYear, activityMonth);
 
         // Refresh user data to update backfill count
-        refreshUser();
+        await refreshUser();
 
         // Reset form to default values
         form.reset();
+       // Redirect to dashboard
+        router.push('/');
       }
     } catch (error: any) {
       console.error("Error submitting activity tracker:", error);
