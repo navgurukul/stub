@@ -131,16 +131,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const filteredAdminLinks = useMemo(() => {
     const filtered = adminLinks.filter((item) => isItemAuthorized(item, user));
-    if (process.env.NODE_ENV === "development") {
-      console.log("🔐 RBAC Debug - Admin links check:");
-      adminLinks.forEach((link) => {
-        const isAuth = isItemAuthorized(link, user);
-        console.log(
-          `  - ${link.title}: ${isAuth ? "✅ Authorized" : "❌ Not authorized"}`
-        );
-        console.log(`    Required roles:`, link.requiredRoles);
-      });
-    }
     return filtered;
   }, [user]);
 

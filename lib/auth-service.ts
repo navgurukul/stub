@@ -116,22 +116,12 @@ export const authService = {
     try {
       const { credential } = credentialResponse;
 
-      console.log("Google credential received:", {
-        hasCredential: !!credential,
-        credentialLength: credential?.length,
-      });
-
       if (!credential) {
         throw new Error("No credential received from Google");
       }
 
       // Decode token to get user email
       const decoded = this.decodeGoogleToken(credential);
-      console.log("Decoded Google token:", {
-        email: decoded.email,
-        emailVerified: decoded.email_verified,
-        name: decoded.name,
-      });
 
       if (!decoded.email_verified) {
         throw new Error("Email not verified");
@@ -165,7 +155,6 @@ export const authService = {
         tokenService.setUserData(userData);
       }
 
-      console.log("Google authentication complete, user data stored");
       return response;
     } catch (error) {
       console.error("Google authentication error:", error);
@@ -178,11 +167,6 @@ export const authService = {
    */
   async login(idToken: string, email: string): Promise<AuthResponse> {
     try {
-      console.log("Attempting backend login with:", {
-        email,
-        idTokenLength: idToken?.length,
-      });
-
       const response = await apiClient.post<AuthResponse>(
         API_PATHS.AUTH_LOGIN,
         {
@@ -191,12 +175,6 @@ export const authService = {
         }
       );
 
-      console.log("Backend login successful:", {
-        hasAccessToken: !!response.data.accessToken,
-        hasRefreshToken: !!response.data.refreshToken,
-        hasUser: !!response.data.user,
-      });
-
       const { accessToken, refreshToken } = response.data;
 
       // Store tokens (validation done by token service)
@@ -204,12 +182,6 @@ export const authService = {
 
       return response.data;
     } catch (error: any) {
-      console.error("Backend login error:", {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-      });
       throw error;
     }
   },
