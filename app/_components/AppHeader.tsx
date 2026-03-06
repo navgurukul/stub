@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
+import { LogOut } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -11,7 +12,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 export type Crumb = {
   label: string;
@@ -25,6 +28,15 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
+  const { logout } = useAuth();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   const lastIndex = crumbs.length - 1;
 
   return (
@@ -66,7 +78,20 @@ export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="ml-auto px-3 flex items-center gap-1">{right}</div>
+      <div className="ml-auto px-3 flex items-center gap-1">
+        <div className="md:hidden">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="h-9 px-3 text-[#37352F] hover:bg-[#F7F7F5] flex items-center gap-2"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm">Log out</span>
+          </Button>
+        </div>
+      </div>
     </header>
   );
 }

@@ -104,11 +104,11 @@ const navLinks: NavItem[] = [
     icon: FolderKanban,
     requiredRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER],
   },
-  {
-    title: "Employee Database",
-    url: "/employees",
-    icon: Users,
-  },
+  // {
+  //   title: "Employee Database",
+  //   url: "/employees",
+  //   icon: Users,
+  // },
 ];
 
 const adminLinks: NavItem[] = [];
