@@ -376,6 +376,23 @@ export function LeaveApplicationForm({
     }
   }
 
+  const priority = ["casual leave", "wellness leave"];
+
+  const sortedLeaveTypes = [...leaveTypes].sort((a, b) => {
+    const aKey = (a.name || "").toLowerCase().trim();
+    const bKey = (b.name || "").toLowerCase().trim();
+
+    const aIdx = priority.findIndex((p) => aKey === p || aKey.includes(p));
+    const bIdx = priority.findIndex((p) => bKey === p || bKey.includes(p));
+
+    const ai = aIdx === -1 ? Number.POSITIVE_INFINITY : aIdx;
+    const bi = bIdx === -1 ? Number.POSITIVE_INFINITY : bIdx;
+
+    if (ai !== bi) return ai - bi;
+
+    return aKey.localeCompare(bKey);
+  });
+
   return (
     <Card className="mx-auto w-full min-w-[120px] max-w-[80vw] sm:max-w-xs md:max-w-lg lg:max-w-2xl xl:max-w-3xl">
       <CardHeader>
@@ -405,7 +422,7 @@ export function LeaveApplicationForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {leaveTypes.map((type) => (
+                        {sortedLeaveTypes.map((type) => (
                           <SelectItem key={type.id} value={type.code}>
                             {type.name}
                           </SelectItem>
