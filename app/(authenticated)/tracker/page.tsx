@@ -111,22 +111,28 @@ export default function TrackerPage() {
   }, [isLoading, user?.orgId]);
 
   const disableInvalidDates = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const cutoffHour = 7;
+    
+    let effectiveToday = new Date(now);
+    effectiveToday.setHours(0, 0, 0, 0);
+    
+    if (now.getHours() < cutoffHour) {
+      effectiveToday.setDate(effectiveToday.getDate() - 1);
+    }
 
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
 
-    // Disable future dates
-    if (d.getTime() > today.getTime()) return true;
+    if (d.getTime() > effectiveToday.getTime()) return true;
 
     const backfillRemaining = user?.backfill?.remaining ?? 0;
     if (backfillRemaining === 0) {
-      return d.getTime() !== today.getTime();
+      return d.getTime() !== effectiveToday.getTime();
     }
 
     const workDaysNeeded = WORK_DAYS_NEEDED;
-    const cursor = new Date(today);
+    const cursor = new Date(effectiveToday);
     cursor.setDate(cursor.getDate() - 1);
 
     let found = 0;
@@ -195,13 +201,19 @@ export default function TrackerPage() {
       .date()
       .refine(
         (date) => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          const now = new Date();
+          const cutoffHour = 7;
+          
+          let effectiveToday = new Date(now);
+          effectiveToday.setHours(0, 0, 0, 0);
+            if (now.getHours() < cutoffHour) {
+            effectiveToday.setDate(effectiveToday.getDate() - 1);
+          }
 
-          // Check if date is in the future
+          // Check if date is in the future (relative to effective today)
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
-          if (d.getTime() > today.getTime()) return false;
+          if (d.getTime() > effectiveToday.getTime()) return false;
 
           return true;
         },
@@ -211,25 +223,32 @@ export default function TrackerPage() {
       )
       .refine(
         (date) => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          const now = new Date();
+          const cutoffHour = 7;
+          
+          let effectiveToday = new Date(now);
+          effectiveToday.setHours(0, 0, 0, 0);
+          
+          if (now.getHours() < cutoffHour) {
+            effectiveToday.setDate(effectiveToday.getDate() - 1);
+          }
+
           const selectedDate = new Date(date);
           selectedDate.setHours(0, 0, 0, 0);
 
-          // If backfill remaining is zero, only allow today
+          // If backfill remaining is zero, only allow effective today
           const backfillRemaining = user?.backfill?.remaining ?? 0;
           if (backfillRemaining === 0) {
-            return selectedDate.getTime() === today.getTime();
+            return selectedDate.getTime() === effectiveToday.getTime();
           }
 
-          // Otherwise, maintain existing 3-day window logic
-          const threeDaysAgo = new Date(today);
-          threeDaysAgo.setDate(today.getDate() - 3);
+          const threeDaysAgo = new Date(effectiveToday);
+          threeDaysAgo.setDate(effectiveToday.getDate() - 3);
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
           return (
             d.getTime() >= threeDaysAgo.getTime() &&
-            d.getTime() <= today.getTime()
+            d.getTime() <= effectiveToday.getTime()
           );
         },
         {

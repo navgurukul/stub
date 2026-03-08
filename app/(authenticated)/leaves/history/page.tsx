@@ -417,15 +417,17 @@ export default function LeaveHistoryPage() {
                     />
                   </TabsContent>
                   <TabsContent value="approved" className="mt-4">
-                    <LeaveTable
-                      leaves={teamApprovedLeaves}
+                    <LeaveTable 
+                      leaves={teamApprovedLeaves} 
                       isLoading={isTeamLoading}
+                      showEmployee={true}
                     />
                   </TabsContent>
                   <TabsContent value="rejected" className="mt-4">
-                    <LeaveTable
-                      leaves={teamRejectedLeaves}
+                    <LeaveTable 
+                      leaves={teamRejectedLeaves} 
                       isLoading={isTeamLoading}
+                      showEmployee={true}
                     />
                   </TabsContent>
                 </Tabs>
