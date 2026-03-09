@@ -139,9 +139,10 @@ export default function TrackerPage() {
     while (found < workDaysNeeded) {
       if (!isNonWorkingDay(cursor)) {
         found++;
-        if (found >= workDaysNeeded) break;
       }
-      cursor.setDate(cursor.getDate() - 1);
+      if (found < workDaysNeeded) {
+        cursor.setDate(cursor.getDate() - 1);
+      }
     }
 
     const earliestAllowed = new Date(cursor);
@@ -242,18 +243,38 @@ export default function TrackerPage() {
             return selectedDate.getTime() === effectiveToday.getTime();
           }
 
-          const threeDaysAgo = new Date(effectiveToday);
-          threeDaysAgo.setDate(effectiveToday.getDate() - 3);
+          // Find past 3 working days (excluding today)
+          const workDaysNeeded = WORK_DAYS_NEEDED;
+          const cursor = new Date(effectiveToday);
+          cursor.setDate(cursor.getDate() - 1); 
+
+          let found = 0;
+          while (found < workDaysNeeded) {
+            if (!isNonWorkingDay(cursor)) {
+              found++;
+            }
+            if (found < workDaysNeeded) {
+              cursor.setDate(cursor.getDate() - 1);
+            }
+          }
+
+          const earliestAllowed = new Date(cursor);
+          earliestAllowed.setHours(0, 0, 0, 0);
+
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
+          const dayBeforeToday = new Date(effectiveToday);
+          dayBeforeToday.setDate(dayBeforeToday.getDate() - 1);
+          
           return (
-            d.getTime() >= threeDaysAgo.getTime() &&
-            d.getTime() <= effectiveToday.getTime()
+            d.getTime() >= earliestAllowed.getTime() &&
+            d.getTime() <= dayBeforeToday.getTime() &&
+            !isNonWorkingDay(d)
           );
         },
         {
           message:
-            "Activity can only be added for the last 3 days (including today). You may have exhausted your backfill limit.",
+            "Activity can be added for the past 3 working days (excluding today and non-working days). You may have exhausted your backfill limit.",
         }
       ),
     projectEntries: z
