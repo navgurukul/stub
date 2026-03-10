@@ -85,19 +85,7 @@ const formSchema = z
   .refine((data) => data.endDate >= data.startDate, {
     message: "End date must be on or after the start date.",
     path: ["endDate"],
-  })
-  .refine(
-    (data) => {
-      if (data.durationType === "half_day") {
-        return data.startDate.getTime() === data.endDate.getTime();
-      }
-      return true;
-    },
-    {
-      message: "Half-day leave must be for a single day only.",
-      path: ["endDate"],
-    }
-  );
+  });
 
 interface LeaveApplicationFormProps {
   userEmail: string;
@@ -291,7 +279,7 @@ export function LeaveApplicationForm({
       if (values.durationType === "full_day") {
         hours = daysDifference * 8; // Assuming 8 hours per full day
       } else if (values.durationType === "half_day") {
-        hours = 4; // Half day is 4 hours
+        hours = daysDifference * 4; 
       }
 
       // Transform form data to match API payload structure
@@ -500,16 +488,6 @@ export function LeaveApplicationForm({
                           selected={dateRange}
                           onSelect={(range) => {
                             setDateRange(range);
-                            // If half-day is selected, ensure single day selection
-                            if (
-                              selectedDurationType === "half_day" &&
-                              range?.from
-                            ) {
-                              setDateRange({
-                                from: range.from,
-                                to: range.from,
-                              });
-                            }
                           }}
                           numberOfMonths={2}
                           disabled={disabledDates}
@@ -518,9 +496,7 @@ export function LeaveApplicationForm({
                       </PopoverContent>
                     </Popover>
                     <FormDescription>
-                      {selectedDurationType === "half_day"
-                        ? "Select a single day for half-day leave"
-                        : "Click to select start date, then click end date for range"}
+                      Click to select start date, then click end date for range
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -538,14 +514,6 @@ export function LeaveApplicationForm({
                       onValueChange={(value) => {
                         field.onChange(value);
                         setSelectedDurationType(value);
-
-                        // When half-day is selected, set end date to match start date
-                        if (value === "half_day") {
-                          const startDate = form.getValues("startDate");
-                          if (startDate) {
-                            form.setValue("endDate", startDate);
-                          }
-                        }
                       }}
                     >
                       <FormControl>
