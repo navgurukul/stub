@@ -260,12 +260,15 @@ export default function TrackerPage() {
 
           const earliestAllowed = new Date(cursor);
           earliestAllowed.setHours(0, 0, 0, 0);
-
+     
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
           const dayBeforeToday = new Date(effectiveToday);
           dayBeforeToday.setDate(dayBeforeToday.getDate() - 1);
-          
+          const isEffectiveToday =
+            d.getTime() === effectiveToday.getTime();
+
+          if (isEffectiveToday) return true;
           return (
             d.getTime() >= earliestAllowed.getTime() &&
             d.getTime() <= dayBeforeToday.getTime() &&
@@ -729,7 +732,7 @@ export default function TrackerPage() {
                                       const parts = cleaned.split(".");
                                       const intPart = parts[0].slice(0, 2);
                                       const fracPart = parts[1]
-                                        ? parts[1].slice(0, 2)
+                                        ? parts[1].slice(0, 1)
                                         : undefined;
                                       const normalized =
                                         fracPart !== undefined
@@ -742,6 +745,7 @@ export default function TrackerPage() {
                                       let valueNum = Number.isFinite(num)
                                         ? num
                                         : 0;
+                                      valueNum = Math.round(valueNum * 10) / 10;
                                       // enforce per-project cap (2 hours for Ad-hoc)
                                       if (isAdHoc && valueNum > 2) {
                                         valueNum = 2;
