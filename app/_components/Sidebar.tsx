@@ -42,6 +42,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
@@ -81,16 +82,6 @@ const navLinks: NavItem[] = [
     title: "Leaves",
     url: "/leaves",
     icon: TreePalm,
-    items: [
-      {
-        title: "Leave Application",
-        url: "/leaves/application",
-      },
-      {
-        title: "Leave History",
-        url: "/leaves/history",
-      },
-    ],
   },
   {
     title: "Comp-Off Request",
@@ -160,6 +151,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   Simple Tracking Until Better
                 </span>
               </Link>
+              <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:hidden flex-shrink-0" />
             </div>
           </SidebarMenuItem>
         </SidebarMenu>

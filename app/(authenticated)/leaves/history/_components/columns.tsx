@@ -215,7 +215,9 @@ export const columns: ColumnDef<LeaveRequest>[] = [
     accessorKey: "reason",
     header: "Reason",
     cell: ({ row }) => (
-      <div className="max-w-xs truncate">{row.getValue("reason")}</div>
+      <div className="max-w-[200px] truncate text-muted-foreground" title={row.original.reason}>
+        {row.original.reason}
+      </div>
     ),
   },
   {

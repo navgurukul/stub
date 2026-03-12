@@ -2,45 +2,50 @@
 @import "tw-animate-css";
 
 :root {
-  /* Notion Brand Colors */
-  --background: #FFFFFF;
-  --secondary-background: #F7F7F5;
-  --foreground: #37352F;
-  --border: #E9E9E7;
-  --accent: #EB5757;
-  --muted: #9B9A97;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* Brand Color Palette */
+  --khaki: #8a6f5e;
+  --cream: #f9f4e9;
+  --sage: #8a918a;
+  --ebony: #4a5548;
+
+  --background: #f9f4e9;
+  --secondary-background: #f0ebe0;
+  --foreground: #4a5548;
+  --border: #d4d8d3;
+  --accent: #8a6f5e;
+  --muted: #8a918a;
+  --shadow: 0 1px 3px rgba(74, 85, 72, 0.08);
   --radius: 4px;
 
-  /* Notion Block Colors - text */
-  --color-gray-text: #9B9A97;
-  --color-brown-text: #64473A;
-  --color-orange-text: #D9730D;
-  --color-yellow-text: #CB8907;
-  --color-green-text: #448361;
-  --color-blue-text: #337EA9;
-  --color-purple-text: #9065B0;
-  --color-pink-text: #C14C8A;
-  --color-red-text: #C2312B;
+  /* Block Colors - text */
+  --color-gray-text: #8a918a;
+  --color-brown-text: #8a6f5e;
+  --color-orange-text: #a08070;
+  --color-yellow-text: #9e9070;
+  --color-green-text: #748074;
+  --color-blue-text: #74808e;
+  --color-purple-text: #90748e;
+  --color-pink-text: #9e7480;
+  --color-red-text: #90686a;
 
-  /* Notion Block Colors - background */
-  --color-gray-bg: #EFEFEF;
-  --color-brown-bg: #E9E5E3;
-  --color-orange-bg: #FBEBE8;
-  --color-yellow-bg: #FBF3DB;
-  --color-green-bg: #E6F4EA;
-  --color-blue-bg: #E8F2F8;
-  --color-purple-bg: #EDE7F6;
-  --color-pink-bg: #F5E6EA;
-  --color-red-bg: #FDEAEA;
+  /* Block Colors - background */
+  --color-gray-bg: #eceee8;
+  --color-brown-bg: #f0ebe3;
+  --color-orange-bg: #f5ede6;
+  --color-yellow-bg: #f8f4e5;
+  --color-green-bg: #e5eeea;
+  --color-blue-bg: #e5edf5;
+  --color-purple-bg: #eeebf5;
+  --color-pink-bg: #f5e8ee;
+  --color-red-bg: #f8eded;
 
   /* Chart colors */
-  --chart-1: #9B9A97;
-  --chart-2: #EB5757;
-  --chart-3: #CB8907;
-  --chart-4: #448361;
-  --chart-5: #9065B0;
-  --chart-active-dot: #37352F;
+  --chart-1: #8a918a;
+  --chart-2: #8a6f5e;
+  --chart-3: #a09070;
+  --chart-4: #748074;
+  --chart-5: #907490;
+  --chart-active-dot: #4a5548;
 }
 
 @theme inline {
@@ -91,8 +96,8 @@
     font-size: 16px;
     font-weight: 400;
     line-height: 1.5;
-    color: #37352F;
-    background-color: #FFFFFF;
+    color: #4a5548;
+    background-color: #f9f4e9;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

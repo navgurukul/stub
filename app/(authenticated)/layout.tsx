@@ -14,7 +14,7 @@ export default function AuthenticatedLayout({
 }>) {
   return (
     <ProtectedRoute>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={false}>
         <AppSidebar />
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>
