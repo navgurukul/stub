@@ -313,7 +313,7 @@ export function NewProjectSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-md">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{isEditing ? "Edit Project" : "Create New Project"}</SheetTitle>
           <SheetDescription>

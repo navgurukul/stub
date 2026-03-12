@@ -101,7 +101,7 @@ export function GoogleLoginButton() {
       {/* Custom styled button matching app design system */}
       <Button
         size="xl"
-        className="cursor-pointer text-lg [&_svg]:size-5"
+        className="cursor-pointer text-lg [&_svg]:size-5 bg-white px-8 py-3"
         onClick={handleClick}
         variant="neutral"
         aria-label="Continue with Google"

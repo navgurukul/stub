@@ -1,90 +1,140 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
-  --background: oklch(93.46% 0.0305 255.11);
-  --secondary-background: oklch(100% 0 0);
-  --foreground: oklch(0% 0 0);
-  --main-foreground: oklch(0% 0 0);
-  --main: oklch(67.47% 0.1726 259.49);
-  --subtle: oklch(0.7631 0.1044 259.49);
-  --subtle-background:oklch(0.7227 0.1471 50.19);
-  --border: oklch(0% 0 0);
-  --ring: oklch(0% 0 0);
-  --overlay: oklch(0% 0 0 / 0.8);
-  --shadow: 4px 4px 0px 0px var(--border);
-  --chart-1: #5294FF;
-  --chart-2: #FF4D50;
-  --chart-3: #FACC00;
-  --chart-4: #05E17A;
-  --chart-5: #7A83FF;
-  --chart-active-dot: #000;
-}
+  /* Notion Brand Colors */
+  --background: #FFFFFF;
+  --secondary-background: #F7F7F5;
+  --foreground: #37352F;
+  --border: #E9E9E7;
+  --accent: #EB5757;
+  --muted: #9B9A97;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --radius: 4px;
 
-.dark {
-  --background: oklch(29.23% 0.0626 270.49);
-  --secondary-background: oklch(23.93% 0 0);
-  --foreground: oklch(92.49% 0 0);
-  --main-foreground: oklch(0% 0 0);
-  --main: oklch(67.47% 0.1726 259.49);
-  --subtle: oklch(0.675 0.0521 259.49);
-  --border: oklch(0% 0 0);
-  --ring: oklch(100% 0 0);
-  --shadow: 4px 4px 0px 0px var(--border);
-  --chart-1: #5294FF;
-  --chart-2: #FF6669;
-  --chart-3: #E0B700;
-  --chart-4: #04C86D;
-  --chart-5: #7A83FF;
-  --chart-active-dot: #fff;
+  /* Notion Block Colors - text */
+  --color-gray-text: #9B9A97;
+  --color-brown-text: #64473A;
+  --color-orange-text: #D9730D;
+  --color-yellow-text: #CB8907;
+  --color-green-text: #448361;
+  --color-blue-text: #337EA9;
+  --color-purple-text: #9065B0;
+  --color-pink-text: #C14C8A;
+  --color-red-text: #C2312B;
+
+  /* Notion Block Colors - background */
+  --color-gray-bg: #EFEFEF;
+  --color-brown-bg: #E9E5E3;
+  --color-orange-bg: #FBEBE8;
+  --color-yellow-bg: #FBF3DB;
+  --color-green-bg: #E6F4EA;
+  --color-blue-bg: #E8F2F8;
+  --color-purple-bg: #EDE7F6;
+  --color-pink-bg: #F5E6EA;
+  --color-red-bg: #FDEAEA;
+
+  /* Chart colors */
+  --chart-1: #9B9A97;
+  --chart-2: #EB5757;
+  --chart-3: #CB8907;
+  --chart-4: #448361;
+  --chart-5: #9065B0;
+  --chart-active-dot: #37352F;
 }
 
 @theme inline {
-  --color-main: var(--main);
   --color-background: var(--background);
   --color-secondary-background: var(--secondary-background);
   --color-foreground: var(--foreground);
-  --color-main-foreground: var(--main-foreground);
-  --color-subtle: var(--subtle);
-  --color-subtle-background: var(--subtle-background);
   --color-border: var(--border);
-  --color-overlay: var(--overlay);
-  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --spacing-boxShadowX: 4px;
-  --spacing-boxShadowY: 4px;
-  --spacing-reverseBoxShadowX: -4px;
-  --spacing-reverseBoxShadowY: -4px;
-  --radius-base: 5px;
-  --shadow-shadow: var(--shadow);
-  --font-weight-base: 500;
-  --font-weight-heading: 700;
-}
-  
-@layer base {
-  * {
-    @apply transition-colors duration-200 ease-in-out;
-  }
+  /* Keep legacy aliases so existing components don't break */
+  --color-main: var(--foreground);
+  --color-main-foreground: #FFFFFF;
+  --color-subtle: var(--muted);
+  --color-subtle-background: var(--secondary-background);
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-ring: var(--foreground);
 
-  /* Respect user preference for reduced motion */
+  --radius-base: 4px;
+  --shadow-shadow: var(--shadow);
+  --font-weight-base: 400;
+  --font-weight-heading: 700;
+
+  /* Notion spacing - 4px grid */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+}
+
+@layer base {
   @media (prefers-reduced-motion: reduce) {
     * {
-      @apply transition-none;
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
     }
   }
 
   body {
-    @apply text-foreground font-base bg-background;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #37352F;
+    background-color: #FFFFFF;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6{
-    @apply font-heading;
+  h1 { font-size: 30px; font-weight: 700; line-height: 1.2; }
+  h2 { font-size: 24px; font-weight: 600; line-height: 1.3; }
+  h3 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+  h4, h5, h6 { font-weight: 600; }
+
+  code, pre, kbd {
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+
+/* Remove number input spinner arrows in most browsers */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox, Chrome, Safari, Edge */
+input[type="number"] {
+  -moz-appearance: textfield; 
+  -webkit-appearance: none;
+  appearance: textfield;
+}
+
+/* Fallback more aggressive selector in case inputs are styled by frameworks */
+input[data-slot="input"][type="number"]::-webkit-outer-spin-button,
+input[data-slot="input"][type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[data-slot="input"][type="number"] {
+  -moz-appearance: textfield;
+  -webkit-appearance: none;
+  appearance: textfield;
 }

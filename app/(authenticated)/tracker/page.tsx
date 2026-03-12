@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
+import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -66,6 +66,7 @@ import {
 } from "@/lib/leave-timesheet-validator";
 
 export default function TrackerPage() {
+  const router = useRouter();
   // Get authenticated user data
   const { user, isLoading, refreshUser } = useAuth();
 
@@ -110,31 +111,38 @@ export default function TrackerPage() {
   }, [isLoading, user?.orgId]);
 
   const disableInvalidDates = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const cutoffHour = 7;
+    
+    let effectiveToday = new Date(now);
+    effectiveToday.setHours(0, 0, 0, 0);
+    
+    if (now.getHours() < cutoffHour) {
+      effectiveToday.setDate(effectiveToday.getDate() - 1);
+    }
 
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
 
-    // Disable future dates
-    if (d.getTime() > today.getTime()) return true;
+    if (d.getTime() > effectiveToday.getTime()) return true;
 
     const backfillRemaining = user?.backfill?.remaining ?? 0;
     if (backfillRemaining === 0) {
-      return d.getTime() !== today.getTime();
+      return d.getTime() !== effectiveToday.getTime();
     }
 
     const workDaysNeeded = WORK_DAYS_NEEDED;
-    const cursor = new Date(today);
+    const cursor = new Date(effectiveToday);
     cursor.setDate(cursor.getDate() - 1);
 
     let found = 0;
     while (found < workDaysNeeded) {
       if (!isNonWorkingDay(cursor)) {
         found++;
-        if (found >= workDaysNeeded) break;
       }
-      cursor.setDate(cursor.getDate() - 1);
+      if (found < workDaysNeeded) {
+        cursor.setDate(cursor.getDate() - 1);
+      }
     }
 
     const earliestAllowed = new Date(cursor);
@@ -194,13 +202,19 @@ export default function TrackerPage() {
       .date()
       .refine(
         (date) => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          const now = new Date();
+          const cutoffHour = 7;
+          
+          let effectiveToday = new Date(now);
+          effectiveToday.setHours(0, 0, 0, 0);
+            if (now.getHours() < cutoffHour) {
+            effectiveToday.setDate(effectiveToday.getDate() - 1);
+          }
 
-          // Check if date is in the future
+          // Check if date is in the future (relative to effective today)
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
-          if (d.getTime() > today.getTime()) return false;
+          if (d.getTime() > effectiveToday.getTime()) return false;
 
           return true;
         },
@@ -210,30 +224,60 @@ export default function TrackerPage() {
       )
       .refine(
         (date) => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          const now = new Date();
+          const cutoffHour = 7;
+          
+          let effectiveToday = new Date(now);
+          effectiveToday.setHours(0, 0, 0, 0);
+          
+          if (now.getHours() < cutoffHour) {
+            effectiveToday.setDate(effectiveToday.getDate() - 1);
+          }
+
           const selectedDate = new Date(date);
           selectedDate.setHours(0, 0, 0, 0);
 
-          // If backfill remaining is zero, only allow today
+          // If backfill remaining is zero, only allow effective today
           const backfillRemaining = user?.backfill?.remaining ?? 0;
           if (backfillRemaining === 0) {
-            return selectedDate.getTime() === today.getTime();
+            return selectedDate.getTime() === effectiveToday.getTime();
           }
 
-          // Otherwise, maintain existing 3-day window logic
-          const threeDaysAgo = new Date(today);
-          threeDaysAgo.setDate(today.getDate() - 3);
+          // Find past 3 working days (excluding today)
+          const workDaysNeeded = WORK_DAYS_NEEDED;
+          const cursor = new Date(effectiveToday);
+          cursor.setDate(cursor.getDate() - 1); 
+
+          let found = 0;
+          while (found < workDaysNeeded) {
+            if (!isNonWorkingDay(cursor)) {
+              found++;
+            }
+            if (found < workDaysNeeded) {
+              cursor.setDate(cursor.getDate() - 1);
+            }
+          }
+
+          const earliestAllowed = new Date(cursor);
+          earliestAllowed.setHours(0, 0, 0, 0);
+     
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
+          const dayBeforeToday = new Date(effectiveToday);
+          dayBeforeToday.setDate(dayBeforeToday.getDate() - 1);
+          const isEffectiveToday =
+            d.getTime() === effectiveToday.getTime();
+
+          if (isEffectiveToday) return true;
           return (
-            d.getTime() >= threeDaysAgo.getTime() &&
-            d.getTime() <= today.getTime()
+            d.getTime() >= earliestAllowed.getTime() &&
+            d.getTime() <= dayBeforeToday.getTime() &&
+            !isNonWorkingDay(d)
           );
         },
         {
           message:
-            "Activity can only be added for the last 3 days (including today). You may have exhausted your backfill limit.",
+            "Activity can be added for the past 3 working days (excluding today and non-working days). You may have exhausted your backfill limit.",
         }
       ),
     projectEntries: z
@@ -367,10 +411,12 @@ export default function TrackerPage() {
         invalidateMonthlyTimesheetCache(activityYear, activityMonth);
 
         // Refresh user data to update backfill count
-        refreshUser();
+        await refreshUser();
 
         // Reset form to default values
         form.reset();
+       // Redirect to dashboard
+        router.push('/');
       }
     } catch (error: any) {
       console.error("Error submitting activity tracker:", error);
@@ -686,7 +732,7 @@ export default function TrackerPage() {
                                       const parts = cleaned.split(".");
                                       const intPart = parts[0].slice(0, 2);
                                       const fracPart = parts[1]
-                                        ? parts[1].slice(0, 2)
+                                        ? parts[1].slice(0, 1)
                                         : undefined;
                                       const normalized =
                                         fracPart !== undefined
@@ -699,6 +745,7 @@ export default function TrackerPage() {
                                       let valueNum = Number.isFinite(num)
                                         ? num
                                         : 0;
+                                      valueNum = Math.round(valueNum * 10) / 10;
                                       // enforce per-project cap (2 hours for Ad-hoc)
                                       if (isAdHoc && valueNum > 2) {
                                         valueNum = 2;
@@ -754,22 +801,26 @@ export default function TrackerPage() {
                     </Alert>
                   )}
 
-                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-4">
-                    <Button
-                      type="button"
-                      variant="noShadow"
-                      size="lg"
-                      onClick={addProjectEntry}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Project Entry
-                    </Button>
-                    <Button type="submit" size="lg" disabled={isSubmitting}>
-                      {isSubmitting
-                        ? "Submitting..."
-                        : "Submit Activity Logger"}
-                    </Button>
-                  </div>
+                  {/* <div className="flex flex-col gap-3 pb-4"> */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={addProjectEntry}
+                    className="self-start"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Another Project Activity
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={isSubmitting}
+                    className="w-full"
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Activity Logger"}
+                  </Button>
+                  {/* </div> */}
                 </form>
               </Form>
             </CardContent>

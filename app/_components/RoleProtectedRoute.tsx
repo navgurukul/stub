@@ -52,26 +52,6 @@ export function RoleProtectedRoute({
       ? rbacService.hasAllRoles(user, roles)
       : rbacService.hasAnyRole(user, roles));
 
-  // Debug logging in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development" && !isLoading) {
-      console.log("🔐 RoleProtectedRoute Check:", {
-        isAuthenticated,
-        isAuthorized,
-        userRoles: user?.roles,
-        requiredRoles: roles,
-        requireAllRoles,
-      });
-    }
-  }, [
-    isLoading,
-    isAuthenticated,
-    isAuthorized,
-    user?.roles,
-    roles,
-    requireAllRoles,
-  ]);
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       // Not authenticated, will be handled by ProtectedRoute wrapper

@@ -113,9 +113,7 @@ export default function LeaveApplicationPage() {
             <Accordion type="single" collapsible defaultValue="item-1">
               <AccordionItem value="item-1">
                 <AccordionTrigger>
-                  <span className="text-lg font-semibold">
-                    Allocated Leaves
-                  </span>
+                  <span className="text-lg font-semibold"></span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <AllocatedLeavesTable leaves={allocatedLeaves} isLoading={loading} />
