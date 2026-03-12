@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 
 import { toast } from "sonner";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import {
@@ -67,7 +62,7 @@ export default function LeaveApplicationPage() {
         balance: balance.balanceHours / 8,
         booked: balance.bookedHours / 8,
         pending: balance.pendingHours / 8,
-        allocated:balance.allocatedHours / 8, 
+        allocated: balance.allocatedHours / 8,
       }));
 
       setAllocatedLeaves(mapped);
@@ -102,30 +97,30 @@ export default function LeaveApplicationPage() {
 
   return (
     <>
-      <AppHeader
-        crumbs={[
-          { label: "Leave Application" },
-        ]}
-      />
+      <AppHeader crumbs={[{ label: "Leave Application" }]} />
       <PageWrapper>
         <div className="w-full p-4 flex flex-col gap-4">
-          <div className="mx-auto w-full min-w-[120px] max-w-[80vw] sm:max-w-xs md:max-w-lg lg:max-w-2xl xl:max-w-3xl">
-            <Accordion type="single" collapsible defaultValue="item-1">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>
-                  <span className="text-lg font-semibold"></span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <AllocatedLeavesTable leaves={allocatedLeaves} isLoading={loading} />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
-
-          <LeaveApplicationForm
-            userEmail={user?.email ?? ""}
-            fetchLeaves={fetchLeaveBalances}
-          />
+          <Tabs
+            defaultValue="allocated"
+            className="mx-auto w-full min-w-[120px] max-w-[80vw] sm:max-w-xs md:max-w-lg lg:max-w-2xl xl:max-w-3xl"
+          >
+            <TabsList>
+              <TabsTrigger value="allocated">Allocated Leaves</TabsTrigger>
+              <TabsTrigger value="apply">Leave Application</TabsTrigger>
+            </TabsList>
+            <TabsContent value="allocated">
+              <AllocatedLeavesTable
+                leaves={allocatedLeaves}
+                isLoading={loading}
+              />
+            </TabsContent>
+            <TabsContent value="apply">
+              <LeaveApplicationForm
+                userEmail={user?.email ?? ""}
+                fetchLeaves={fetchLeaveBalances}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </PageWrapper>
     </>
