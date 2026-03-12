@@ -9,6 +9,10 @@ import {
   Download,
   LayoutGrid,
   List,
+  Briefcase,
+  Calendar,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 
 import { AppHeader } from "@/app/_components/AppHeader";
@@ -25,6 +29,14 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import apiClient from "@/lib/api-client";
 import { API_PATHS, DATE_FORMATS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
@@ -231,6 +243,8 @@ export default function DashboardPage() {
     }
     return "table";
   });
+  const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
+  const [isDaySheetOpen, setIsDaySheetOpen] = useState(false);
 
   // Check if user is admin or super admin
   const isAdminOrSuperAdmin = useMemo(() => {
@@ -485,38 +499,38 @@ export default function DashboardPage() {
             </div>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <Card className="border border-border">
-                <CardContent className="pt-6">
-                  <div className="space-y-1">
+                <CardContent className="py-2.5 px-4">
+                  <div className="space-y-0">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Total Hours Logged
                     </p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-xl font-bold text-foreground">
                       {monthlyData?.totals.timesheetHours || 0}
                     </p>
                   </div>
                 </CardContent>
               </Card>
               <Card className="border border-border">
-                <CardContent className="pt-6">
-                  <div className="space-y-1">
+                <CardContent className="py-2.5 px-4">
+                  <div className="space-y-0">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Leave Days
                     </p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-xl font-bold text-foreground">
                       {leaveDaysDisplay}
                     </p>
                   </div>
                 </CardContent>
               </Card>
               <Card className="border border-border">
-                <CardContent className="pt-6">
-                  <div className="space-y-1">
+                <CardContent className="py-2.5 px-4">
+                  <div className="space-y-0">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Lifelines Remaining
                     </p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-xl font-bold text-foreground">
                       {user?.backfill?.remaining ?? 0}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -526,12 +540,12 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
               <Card className="border border-border">
-                <CardContent className="pt-6">
-                  <div className="space-y-1">
+                <CardContent className="py-2.5 px-4">
+                  <div className="space-y-0">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Total Payable Days
                     </p>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="text-xl font-bold text-foreground">
                       {payableDays}/{totalCycleDays}
                     </p>
                   </div>
@@ -643,7 +657,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 ) : viewMode === "grid" ? (
-                  /* Grid View — built from raw monthlyData.days so unfilled days appear too */
+                  /* Calendar Week View — organized by weeks with day cards */
                   (() => {
                     const sortedGridDays = [...(monthlyData?.days ?? [])].sort(
                       (a, b) =>
@@ -653,165 +667,368 @@ export default function DashboardPage() {
                     const todayMidnight = new Date();
                     todayMidnight.setHours(0, 0, 0, 0);
 
+                    // Group days by week
+                    const weeks: (typeof sortedGridDays)[] = [];
+                    let currentWeek: typeof sortedGridDays = [];
+                    let currentWeekNum = 0;
+
+                    sortedGridDays.forEach((day) => {
+                      const parsedDate = parseISO(day.date);
+                      const dayOfMonth = parsedDate.getDate();
+                      const weekNum = Math.ceil(dayOfMonth / 7);
+
+                      if (
+                        weekNum !== currentWeekNum &&
+                        currentWeek.length > 0
+                      ) {
+                        weeks.push(currentWeek);
+                        currentWeek = [];
+                      }
+                      currentWeekNum = weekNum;
+                      currentWeek.push(day);
+                    });
+                    if (currentWeek.length > 0) {
+                      weeks.push(currentWeek);
+                    }
+
+                    // Helper to get day card data
+                    const getDayCardData = (
+                      day: (typeof sortedGridDays)[0]
+                    ) => {
+                      const parsedDate = parseISO(day.date);
+                      const dayOfWeek = format(parsedDate, "EEEE");
+                      const dayShort = format(parsedDate, "EEE");
+                      const displayDate = format(parsedDate, "dd");
+                      const dayOfMonth = parsedDate.getDate();
+                      const weekOfMonth = Math.ceil(dayOfMonth / 7);
+                      const isSaturday = dayOfWeek === "Saturday";
+                      const is2ndOr4thSaturday =
+                        isSaturday && (weekOfMonth === 2 || weekOfMonth === 4);
+                      const isSunday = dayOfWeek === "Sunday";
+                      const isWeekendOff = is2ndOr4thSaturday || isSunday;
+
+                      const hasTimesheet =
+                        (day.timesheet?.entries?.length ?? 0) > 0;
+                      const hasLeave = (day.leaves?.entries?.length ?? 0) > 0;
+                      const isOff = isWeekendOff || day.isHoliday;
+                      const isUnfilled = !hasTimesheet && !hasLeave && !isOff;
+
+                      const isToday =
+                        parsedDate.getFullYear() ===
+                          todayMidnight.getFullYear() &&
+                        parsedDate.getMonth() === todayMidnight.getMonth() &&
+                        parsedDate.getDate() === todayMidnight.getDate();
+
+                      const timesheetEntries = day.timesheet?.entries ?? [];
+                      const leaveEntries = day.leaves?.entries ?? [];
+                      const totalHours =
+                        timesheetEntries.reduce((s, e) => s + e.hours, 0) +
+                        leaveEntries.reduce((s, e) => s + e.hours, 0);
+
+                      let status:
+                        | "off"
+                        | "unfilled"
+                        | "filled"
+                        | "rejected"
+                        | "pending" = "filled";
+                      if (isOff) status = "off";
+                      else if (isUnfilled) status = "unfilled";
+                      else if (day.timesheet?.state === "rejected")
+                        status = "rejected";
+                      else if (
+                        leaveEntries.some((e: any) => e.state === "rejected")
+                      )
+                        status = "rejected";
+                      else if (
+                        leaveEntries.some((e: any) => e.state === "pending")
+                      )
+                        status = "pending";
+
+                      return {
+                        day,
+                        parsedDate,
+                        dayOfWeek,
+                        dayShort,
+                        displayDate,
+                        isOff,
+                        isUnfilled,
+                        isToday,
+                        totalHours,
+                        status,
+                        timesheetEntries,
+                        leaveEntries,
+                        isHoliday: day.isHoliday,
+                        holidayName: day.holidayName,
+                        is2ndOr4thSaturday,
+                        isSunday,
+                      };
+                    };
+
                     return (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                        {sortedGridDays.map((day) => {
-                          const parsedDate = parseISO(day.date);
-                          const dayOfWeek = format(parsedDate, "EEEE");
-                          const displayDate = format(parsedDate, "dd/MM/yyyy");
-                          const dayOfMonth = parsedDate.getDate();
-                          const weekOfMonth = Math.ceil(dayOfMonth / 7);
-                          const isSaturday = dayOfWeek === "Saturday";
-                          const is2ndOr4thSaturday =
-                            isSaturday &&
-                            (weekOfMonth === 2 || weekOfMonth === 4);
-                          const isSunday = dayOfWeek === "Sunday";
-                          const isWeekendOff = is2ndOr4thSaturday || isSunday;
-
-                          const hasTimesheet =
-                            (day.timesheet?.entries?.length ?? 0) > 0;
-                          const hasLeave =
-                            (day.leaves?.entries?.length ?? 0) > 0;
-                          const isOff = isWeekendOff || day.isHoliday;
-                          const isUnfilled =
-                            !hasTimesheet && !hasLeave && !isOff;
-
-                          const isToday =
-                            parsedDate.getFullYear() ===
-                              todayMidnight.getFullYear() &&
-                            parsedDate.getMonth() ===
-                              todayMidnight.getMonth() &&
-                            parsedDate.getDate() === todayMidnight.getDate();
-
-                          // Card background
-                          let cardBg = "var(--background)";
-                          if (isUnfilled)
-                            cardBg = "var(--secondary-background)";
-                          else if (day.timesheet?.state === "rejected")
-                            cardBg = "var(--color-red-bg)";
-                          else if (isOff) cardBg = "var(--color-green-bg)";
-
-                          const timesheetEntries = day.timesheet?.entries ?? [];
-                          const leaveEntries = day.leaves?.entries ?? [];
-                          const totalHours =
-                            timesheetEntries.reduce((s, e) => s + e.hours, 0) +
-                            leaveEntries.reduce((s, e) => s + e.hours, 0);
-
-                          let offLabel = "";
-                          if (day.isHoliday)
-                            offLabel = day.holidayName
-                              ? `Holiday — ${day.holidayName}`
-                              : "Holiday";
-                          else if (isSunday) offLabel = "Sunday";
-                          else if (is2ndOr4thSaturday)
-                            offLabel = "Saturday (Off)";
+                      <div className="space-y-4">
+                        {weeks.map((weekDays, weekIndex) => {
+                          const weekData = weekDays.map(getDayCardData);
+                          const weekTotalHours = weekData.reduce(
+                            (sum, d) => sum + d.totalHours,
+                            0
+                          );
+                          const unfilledCount = weekData.filter(
+                            (d) => d.isUnfilled
+                          ).length;
 
                           return (
                             <div
-                              key={day.date}
-                              className="rounded-[6px] overflow-hidden"
-                              style={{
-                                backgroundColor: cardBg,
-                                border: isToday
-                                  ? "1.5px solid var(--muted)"
-                                  : "1px solid var(--border)",
-                              }}
+                              key={weekIndex}
+                              className="rounded-[4px] border border-border overflow-hidden"
+                              style={{ backgroundColor: "var(--background)" }}
                             >
-                              {/* Card header */}
-                              <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                                <div>
-                                  <p className="text-xs font-semibold text-foreground">
-                                    {displayDate}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {dayOfWeek}
-                                  </p>
-                                </div>
-                                {totalHours > 0 && (
-                                  <span className="text-xs font-bold text-foreground">
-                                    {totalHours}h
+                              {/* Week Header */}
+                              <div
+                                className="px-3 py-2 border-b border-border flex items-center justify-between"
+                                style={{
+                                  backgroundColor:
+                                    "var(--secondary-background)",
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="text-xs font-semibold uppercase tracking-wide"
+                                    style={{ color: "var(--foreground)" }}
+                                  >
+                                    Week {weekIndex + 1}
                                   </span>
-                                )}
+                                  <span
+                                    className="text-xs"
+                                    style={{ color: "var(--muted)" }}
+                                  >
+                                    {format(weekData[0].parsedDate, "MMM dd")} —{" "}
+                                    {format(
+                                      weekData[weekData.length - 1].parsedDate,
+                                      "MMM dd"
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs">
+                                  {weekTotalHours > 0 && (
+                                    <span style={{ color: "var(--muted)" }}>
+                                      {weekTotalHours}h
+                                    </span>
+                                  )}
+                                  {unfilledCount > 0 && (
+                                    <span
+                                      className="font-medium"
+                                      style={{
+                                        color: "var(--color-orange-text)",
+                                      }}
+                                    >
+                                      {unfilledCount} pending
+                                    </span>
+                                  )}
+                                </div>
                               </div>
 
-                              {/* Body */}
-                              <div className="divide-y divide-border">
-                                {isOff && !hasTimesheet && !hasLeave && (
-                                  <div className="px-3 py-2">
-                                    <p className="text-xs text-muted-foreground">
-                                      {offLabel}
-                                    </p>
-                                  </div>
-                                )}
-                                {isUnfilled && (
-                                  <div className="px-3 py-2">
-                                    <p className="text-xs text-muted-foreground italic">
-                                      No entry
-                                    </p>
-                                  </div>
-                                )}
-                                {timesheetEntries.map((entry, i) => (
-                                  <div
-                                    key={`ts-${i}`}
-                                    className="px-3 py-2 space-y-0.5"
-                                  >
-                                    <p className="text-xs font-medium text-foreground truncate">
-                                      {entry.projectName || "-"}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {entry.taskDescription || "-"}
-                                    </p>
-                                    <div className="flex items-center justify-between pt-0.5">
-                                      <span className="text-xs text-muted-foreground">
-                                        {entry.hours}h
-                                      </span>
-                                      {day.timesheet?.state === "rejected" && (
-                                        <span className="text-xs text-accent font-medium">
-                                          Rejected
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                                {leaveEntries.map((entry, i) => {
-                                  const leaveStatus =
-                                    (entry as any).state === "rejected"
-                                      ? "rejected"
-                                      : (entry as any).state === "pending"
-                                      ? "pending"
-                                      : "approved";
-                                  const leaveBg =
-                                    leaveStatus === "rejected"
-                                      ? "var(--color-red-bg)"
-                                      : leaveStatus === "pending"
-                                      ? "var(--color-yellow-bg)"
-                                      : undefined;
+                              {/* Week Days Grid */}
+                              <div
+                                className="grid grid-cols-7 divide-x divide-border"
+                                style={{ borderColor: "var(--border)" }}
+                              >
+                                {weekData.map((dayData) => {
+                                  // Determine cell background
+                                  let cellBg = "var(--background)";
+                                  if (dayData.isOff)
+                                    cellBg = "var(--color-green-bg)";
+                                  else if (dayData.isUnfilled)
+                                    cellBg = "var(--secondary-background)";
+                                  else if (dayData.status === "rejected")
+                                    cellBg = "var(--color-red-bg)";
+                                  else if (dayData.status === "pending")
+                                    cellBg = "var(--color-yellow-bg)";
+
                                   return (
                                     <div
-                                      key={`lv-${i}`}
-                                      className="px-3 py-2 space-y-0.5"
-                                      style={
-                                        leaveBg
-                                          ? { backgroundColor: leaveBg }
-                                          : undefined
-                                      }
+                                      key={dayData.day.date}
+                                      className="min-h-[100px] p-2 relative cursor-pointer hover:brightness-[0.98] transition-all rounded-[4px]"
+                                      style={{
+                                        backgroundColor: cellBg,
+                                        borderColor: "var(--border)",
+                                        boxShadow: dayData.isToday
+                                          ? "inset 0 0 0 1.5px var(--foreground)"
+                                          : undefined,
+                                      }}
+                                      onClick={() => {
+                                        setSelectedDay(dayData.day);
+                                        setIsDaySheetOpen(true);
+                                      }}
                                     >
-                                      <p className="text-xs font-medium text-foreground truncate">
-                                        Leave — {entry.leaveType.name}
-                                      </p>
-                                      <div className="flex items-center justify-between pt-0.5">
-                                        <span className="text-xs text-muted-foreground">
-                                          {entry.hours}h
-                                        </span>
-                                        {leaveStatus === "pending" && (
-                                          <span className="text-xs text-yellow-text font-medium">
-                                            Pending
+                                      {/* Day Header */}
+                                      <div className="flex items-start justify-between mb-1.5">
+                                        <div className="flex flex-col">
+                                          <span
+                                            className="text-base font-semibold leading-none"
+                                            style={{
+                                              color: "var(--foreground)",
+                                            }}
+                                          >
+                                            {dayData.displayDate}
+                                          </span>
+                                          <span
+                                            className="text-[10px] uppercase mt-0.5"
+                                            style={{ color: "var(--muted)" }}
+                                          >
+                                            {dayData.dayShort}
+                                          </span>
+                                        </div>
+                                        {dayData.totalHours > 0 && (
+                                          <span
+                                            className="text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]"
+                                            style={{
+                                              backgroundColor:
+                                                "var(--secondary-background)",
+                                              color: "var(--foreground)",
+                                            }}
+                                          >
+                                            {dayData.totalHours}h
                                           </span>
                                         )}
-                                        {leaveStatus === "rejected" && (
-                                          <span className="text-xs text-accent font-medium">
-                                            Rejected
-                                          </span>
+                                      </div>
+
+                                      {/* Day Content */}
+                                      <div className="space-y-0.5">
+                                        {/* Off day indicator */}
+                                        {dayData.isOff && (
+                                          <div
+                                            className="text-[10px] font-medium"
+                                            style={{
+                                              color: "var(--color-green-text)",
+                                            }}
+                                          >
+                                            {dayData.isHoliday
+                                              ? "Holiday"
+                                              : dayData.isSunday
+                                              ? "Sunday"
+                                              : "Off"}
+                                          </div>
+                                        )}
+
+                                        {/* Holiday name */}
+                                        {dayData.isHoliday &&
+                                          dayData.holidayName && (
+                                            <div
+                                              className="text-[10px] truncate"
+                                              style={{
+                                                color:
+                                                  "var(--color-green-text)",
+                                              }}
+                                            >
+                                              {dayData.holidayName}
+                                            </div>
+                                          )}
+
+                                        {/* Timesheet entries */}
+                                        {dayData.timesheetEntries.length >
+                                          0 && (
+                                          <div className="space-y-0.5">
+                                            {dayData.timesheetEntries.map(
+                                              (entry, i) => (
+                                                <div
+                                                  key={i}
+                                                  className="text-[10px] truncate flex items-center gap-1"
+                                                >
+                                                  <span
+                                                    className="font-medium truncate"
+                                                    style={{
+                                                      color:
+                                                        "var(--foreground)",
+                                                    }}
+                                                  >
+                                                    {entry.projectName ||
+                                                      "Project"}
+                                                  </span>
+                                                  <span
+                                                    style={{
+                                                      color: "var(--muted)",
+                                                    }}
+                                                  >
+                                                    {entry.hours}h
+                                                  </span>
+                                                  {dayData.day.timesheet
+                                                    ?.state === "rejected" && (
+                                                    <span
+                                                      style={{
+                                                        color:
+                                                          "var(--color-red-text)",
+                                                      }}
+                                                    >
+                                                      ×
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Leave entries */}
+                                        {dayData.leaveEntries.length > 0 && (
+                                          <div className="space-y-0.5">
+                                            {dayData.leaveEntries.map(
+                                              (entry: any, i) => (
+                                                <div
+                                                  key={i}
+                                                  className="text-[10px] truncate flex items-center gap-1"
+                                                >
+                                                  <span
+                                                    className="font-medium truncate"
+                                                    style={{
+                                                      color:
+                                                        "var(--foreground)",
+                                                    }}
+                                                  >
+                                                    {entry.leaveType.name}
+                                                  </span>
+                                                  <span
+                                                    style={{
+                                                      color: "var(--muted)",
+                                                    }}
+                                                  >
+                                                    {entry.hours}h
+                                                  </span>
+                                                  {entry.state ===
+                                                    "pending" && (
+                                                    <span
+                                                      style={{
+                                                        color:
+                                                          "var(--color-yellow-text)",
+                                                      }}
+                                                    >
+                                                      ○
+                                                    </span>
+                                                  )}
+                                                  {entry.state ===
+                                                    "rejected" && (
+                                                    <span
+                                                      style={{
+                                                        color:
+                                                          "var(--color-red-text)",
+                                                      }}
+                                                    >
+                                                      ×
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Unfilled indicator */}
+                                        {dayData.isUnfilled && (
+                                          <div
+                                            className="text-[10px] italic"
+                                            style={{ color: "var(--muted)" }}
+                                          >
+                                            —
+                                          </div>
                                         )}
                                       </div>
                                     </div>
@@ -1028,6 +1245,221 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
+
+        {/* Day Detail Sheet */}
+        <Sheet open={isDaySheetOpen} onOpenChange={setIsDaySheetOpen}>
+          <SheetContent side="right" className="w-full md:w-[400px] p-0">
+            <SheetTitle className="sr-only">
+              {selectedDay
+                ? format(parseISO(selectedDay.date), "EEEE, MMM d")
+                : "Day Details"}
+            </SheetTitle>
+            {selectedDay && (
+              <div className="h-full flex flex-col">
+                {/* Header */}
+                <div
+                  className="px-5 py-4 border-b border-border"
+                  style={{ backgroundColor: "var(--secondary-background)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar
+                      className="h-4 w-4"
+                      style={{ color: "var(--foreground)" }}
+                    />
+                    <span
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      {format(parseISO(selectedDay.date), "EEEE, MMM d")}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                    {selectedDay.isHoliday
+                      ? selectedDay.holidayName
+                      : selectedDay.isWeekend
+                      ? "Weekend"
+                      : selectedDay.isWorkingDay
+                      ? "Working Day"
+                      : "Non-working Day"}
+                  </p>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                  {/* Hours Summary */}
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <p
+                        className="text-[10px] uppercase tracking-wide mb-1"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        Timesheet
+                      </p>
+                      <p
+                        className="text-xl font-semibold"
+                        style={{ color: "var(--foreground)" }}
+                      >
+                        {selectedDay.timesheet?.totalHours || 0}h
+                      </p>
+                    </div>
+                    <div className="flex-1">
+                      <p
+                        className="text-[10px] uppercase tracking-wide mb-1"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        Leave
+                      </p>
+                      <p
+                        className="text-xl font-semibold"
+                        style={{ color: "var(--foreground)" }}
+                      >
+                        {selectedDay.leaves?.totalHours || 0}h
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Timesheet Entries */}
+                  {selectedDay.timesheet &&
+                    selectedDay.timesheet.entries.length > 0 && (
+                      <div className="space-y-2">
+                        <p
+                          className="text-xs font-medium"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          Timesheet
+                        </p>
+                        <div className="space-y-2">
+                          {selectedDay.timesheet.entries.map((entry, index) => (
+                            <div
+                              key={index}
+                              className="py-2 border-b border-border last:border-0"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <p
+                                  className="text-sm font-medium truncate"
+                                  style={{ color: "var(--foreground)" }}
+                                >
+                                  {entry.projectName || "—"}
+                                </p>
+                                <span
+                                  className="text-xs shrink-0"
+                                  style={{ color: "var(--muted)" }}
+                                >
+                                  {entry.hours}h
+                                </span>
+                              </div>
+                              <p
+                                className="text-xs mt-0.5"
+                                style={{ color: "var(--muted)" }}
+                              >
+                                {entry.departmentName}
+                              </p>
+                              {entry.taskDescription && (
+                                <p
+                                  className="text-xs mt-1.5"
+                                  style={{ color: "var(--muted)" }}
+                                >
+                                  {entry.taskDescription}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {selectedDay.timesheet.notes && (
+                          <p
+                            className="text-xs pt-2"
+                            style={{ color: "var(--color-yellow-text)" }}
+                          >
+                            Note: {selectedDay.timesheet.notes}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                  {/* Leave Entries */}
+                  {selectedDay.leaves &&
+                    selectedDay.leaves.entries.length > 0 && (
+                      <div className="space-y-2">
+                        <p
+                          className="text-xs font-medium"
+                          style={{ color: "var(--foreground)" }}
+                        >
+                          Leave
+                        </p>
+                        <div className="space-y-2">
+                          {selectedDay.leaves.entries.map(
+                            (entry: any, index) => {
+                              const status = entry.state || "approved";
+                              const statusColors: Record<string, string> = {
+                                approved: "var(--color-green-text)",
+                                pending: "var(--color-yellow-text)",
+                                rejected: "var(--color-red-text)",
+                              };
+                              const color =
+                                statusColors[status] || statusColors.approved;
+
+                              return (
+                                <div
+                                  key={index}
+                                  className="py-2 border-b border-border last:border-0"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span
+                                      className="text-sm"
+                                      style={{ color: "var(--foreground)" }}
+                                    >
+                                      {entry.leaveType.name}
+                                    </span>
+                                    <span
+                                      className="text-xs capitalize"
+                                      style={{ color }}
+                                    >
+                                      {status}
+                                    </span>
+                                  </div>
+                                  <p
+                                    className="text-xs mt-0.5"
+                                    style={{ color: "var(--muted)" }}
+                                  >
+                                    {entry.hours} hours
+                                  </p>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Empty State */}
+                  {(!selectedDay.timesheet ||
+                    selectedDay.timesheet.entries.length === 0) &&
+                    (!selectedDay.leaves ||
+                      selectedDay.leaves.entries.length === 0) &&
+                    !selectedDay.isHoliday &&
+                    !selectedDay.isWeekend && (
+                      <p
+                        className="text-sm text-center py-4"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        No entries
+                      </p>
+                    )}
+
+                  {/* Off Day */}
+                  {(selectedDay.isHoliday || selectedDay.isWeekend) && (
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--color-green-text)" }}
+                    >
+                      No timesheet required
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
       </PageWrapper>
     </>
   );

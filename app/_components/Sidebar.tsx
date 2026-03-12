@@ -178,7 +178,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           isActive={isParentActive(item, pathname)}
                           tooltip={item.title}
                           className={cn(
-                            "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
+                            "rounded-[4px] h-9 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                             isParentActive(item, pathname) &&
                               "bg-secondary-background font-medium text-foreground"
                           )}
@@ -217,7 +217,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           isActive={isParentActive(item, pathname)}
                           tooltip={item.title}
                           className={cn(
-                            "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
+                            "rounded-[4px] h-9 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                             isParentActive(item, pathname) &&
                               "bg-secondary-background font-medium text-foreground"
                           )}
@@ -261,7 +261,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     isActive={pathname === item.url}
                     tooltip={item.title}
                     className={cn(
-                      "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
+                      "rounded-[4px] h-9 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                       pathname === item.url &&
                         "bg-secondary-background font-medium text-foreground"
                     )}
@@ -290,7 +290,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     isActive={pathname === item.url}
                     tooltip={item.title}
                     className={cn(
-                      "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
+                      "rounded-[4px] h-9 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                       pathname === item.url &&
                         "bg-secondary-background font-medium text-foreground"
                     )}

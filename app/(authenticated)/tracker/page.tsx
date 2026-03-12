@@ -113,10 +113,10 @@ export default function TrackerPage() {
   const disableInvalidDates = (date: Date) => {
     const now = new Date();
     const cutoffHour = 7;
-    
+
     let effectiveToday = new Date(now);
     effectiveToday.setHours(0, 0, 0, 0);
-    
+
     if (now.getHours() < cutoffHour) {
       effectiveToday.setDate(effectiveToday.getDate() - 1);
     }
@@ -204,10 +204,10 @@ export default function TrackerPage() {
         (date) => {
           const now = new Date();
           const cutoffHour = 7;
-          
+
           let effectiveToday = new Date(now);
           effectiveToday.setHours(0, 0, 0, 0);
-            if (now.getHours() < cutoffHour) {
+          if (now.getHours() < cutoffHour) {
             effectiveToday.setDate(effectiveToday.getDate() - 1);
           }
 
@@ -226,10 +226,10 @@ export default function TrackerPage() {
         (date) => {
           const now = new Date();
           const cutoffHour = 7;
-          
+
           let effectiveToday = new Date(now);
           effectiveToday.setHours(0, 0, 0, 0);
-          
+
           if (now.getHours() < cutoffHour) {
             effectiveToday.setDate(effectiveToday.getDate() - 1);
           }
@@ -246,7 +246,7 @@ export default function TrackerPage() {
           // Find past 3 working days (excluding today)
           const workDaysNeeded = WORK_DAYS_NEEDED;
           const cursor = new Date(effectiveToday);
-          cursor.setDate(cursor.getDate() - 1); 
+          cursor.setDate(cursor.getDate() - 1);
 
           let found = 0;
           while (found < workDaysNeeded) {
@@ -260,13 +260,12 @@ export default function TrackerPage() {
 
           const earliestAllowed = new Date(cursor);
           earliestAllowed.setHours(0, 0, 0, 0);
-     
+
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
           const dayBeforeToday = new Date(effectiveToday);
           dayBeforeToday.setDate(dayBeforeToday.getDate() - 1);
-          const isEffectiveToday =
-            d.getTime() === effectiveToday.getTime();
+          const isEffectiveToday = d.getTime() === effectiveToday.getTime();
 
           if (isEffectiveToday) return true;
           return (
@@ -415,8 +414,8 @@ export default function TrackerPage() {
 
         // Reset form to default values
         form.reset();
-       // Redirect to dashboard
-        router.push('/');
+        // Redirect to dashboard
+        router.push("/");
       }
     } catch (error: any) {
       console.error("Error submitting activity tracker:", error);

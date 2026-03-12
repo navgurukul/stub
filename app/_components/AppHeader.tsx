@@ -47,7 +47,7 @@ export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
       )}
     >
       <div className="flex items-center gap-1 px-2">
-        <SidebarTrigger className="-ml-1 size-7 text-muted-foreground hover:text-foreground hover:bg-secondary-background rounded-[4px]" />
+        <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
         <div className="w-px h-4 bg-border mx-1" />
         <Breadcrumb>
           <BreadcrumbList className="gap-1">
