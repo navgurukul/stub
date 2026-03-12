@@ -436,7 +436,8 @@ export default function LeavesPage() {
                     </span>
                   )}
                 </div>
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">#</th>
@@ -507,13 +508,14 @@ export default function LeavesPage() {
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </TabsContent>
 
             {/* ── LEAVE BALANCE TAB ── */}
             <TabsContent value="balance" className="mt-0">
               <div className="rounded-lg border border-border overflow-hidden bg-background">
-                <div className="px-5 py-4 border-b border-border bg-secondary-background flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-border bg-secondary-background flex flex-wrap items-start gap-y-2 justify-between">
                   <div>
                     <h2 className="text-sm font-semibold text-foreground">Leave Balance</h2>
                     <p className="text-xs text-muted-foreground mt-0.5">Allocated and remaining days for {fyLabel}</p>
@@ -552,12 +554,12 @@ export default function LeavesPage() {
 
                       return (
                         <div key={balance.id} className="px-5 py-4 hover:bg-secondary-background/40 transition-colors">
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
                             {/* Leave type name */}
-                            <div className="w-44 flex-shrink-0">
+                            <div className="flex items-center gap-2 sm:w-44 sm:flex-shrink-0">
                               <span className="text-sm font-medium text-foreground">{balance.leaveType.name}</span>
                               {balance.leaveType.paid && (
-                                <span className="ml-2 text-[10px] font-medium text-[#748074] bg-[#e5eeea] rounded px-1.5 py-0.5">Paid</span>
+                                <span className="text-[10px] font-medium text-[#748074] bg-[#e5eeea] rounded px-1.5 py-0.5">Paid</span>
                               )}
                             </div>
 
@@ -576,25 +578,25 @@ export default function LeavesPage() {
                             </div>
 
                             {/* Stats */}
-                            <div className="flex items-center gap-5 text-sm flex-shrink-0">
-                              <div className="text-center min-w-[3rem]">
+                            <div className="flex items-center gap-4 sm:gap-5 text-sm sm:flex-shrink-0">
+                              <div className="text-center min-w-[2.5rem]">
                                 <p className={cn("font-semibold tabular-nums", isLow ? "text-amber-600" : "text-emerald-600")}>
                                   {remaining}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">remaining</p>
                               </div>
-                              <div className="text-center min-w-[3rem]">
+                              <div className="text-center min-w-[2.5rem]">
                                 <p className="font-medium text-foreground tabular-nums">{allocated}</p>
                                 <p className="text-[10px] text-muted-foreground">allocated</p>
                               </div>
                               {pending > 0 && (
-                                <div className="text-center min-w-[3rem]">
+                                <div className="text-center min-w-[2.5rem]">
                                   <p className="font-medium text-amber-600 tabular-nums">{pending}</p>
                                   <p className="text-[10px] text-muted-foreground">pending</p>
                                 </div>
                               )}
                               {approved > 0 && (
-                                <div className="text-center min-w-[3rem]">
+                                <div className="text-center min-w-[2.5rem]">
                                   <p className="font-medium text-muted-foreground tabular-nums">{approved}</p>
                                   <p className="text-[10px] text-muted-foreground">taken</p>
                                 </div>
