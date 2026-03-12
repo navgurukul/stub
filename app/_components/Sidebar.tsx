@@ -104,11 +104,11 @@ const navLinks: NavItem[] = [
     icon: FolderKanban,
     requiredRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER],
   },
-  {
-    title: "Employee Database",
-    url: "/employees",
-    icon: Users,
-  },
+  // {
+  //   title: "Employee Database",
+  //   url: "/employees",
+  //   icon: Users,
+  // },
 ];
 
 const adminLinks: NavItem[] = [];
@@ -151,7 +151,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Link
                 href="/"
                 className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden"
-                title="S.T.U.B - Simple Tracking Until Better"
+                title="We dont have satisfactory output tracking yet so until then we will do input tracking"
               >
                 <span className="text-sm font-semibold text-[#37352F] truncate block">
                   S.T.U.B

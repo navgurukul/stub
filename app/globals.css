@@ -110,3 +110,31 @@
     box-sizing: border-box;
   }
 }
+
+
+/* Remove number input spinner arrows in most browsers */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox, Chrome, Safari, Edge */
+input[type="number"] {
+  -moz-appearance: textfield; 
+  -webkit-appearance: none;
+  appearance: textfield;
+}
+
+/* Fallback more aggressive selector in case inputs are styled by frameworks */
+input[data-slot="input"][type="number"]::-webkit-outer-spin-button,
+input[data-slot="input"][type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[data-slot="input"][type="number"] {
+  -moz-appearance: textfield;
+  -webkit-appearance: none;
+  appearance: textfield;
+}

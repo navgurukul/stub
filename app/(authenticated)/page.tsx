@@ -81,7 +81,7 @@ interface MonthlyTimesheetResponse {
   totals: {
     timesheetHours: number;
     leaveHours: number;
-    totalPayableDays: number; // Add this line
+    totalPayableDays: number;
   };
   days: DayData[];
 }
@@ -833,14 +833,14 @@ export default function DashboardPage() {
                             <TableHead className="whitespace-nowrap w-16">
                               Sr
                             </TableHead>
-                            <TableHead className="whitespace-nowrap w-32">
-                              Project
-                            </TableHead>
                             <TableHead className="whitespace-nowrap w-28">
                               Date
                             </TableHead>
                             <TableHead className="whitespace-nowrap w-28">
                               Day
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap w-32">
+                              Project
                             </TableHead>
                             <TableHead className="whitespace-nowrap w-20 text-center">
                               Hours
@@ -869,13 +869,13 @@ export default function DashboardPage() {
                               (row.isLeave && row.leaveStatus === "rejected") ||
                               row.timesheetState === "rejected"
                             ) {
-                              bgColor = "#FDEAEA";
+                            
                               isColored = true;
                             } else if (
                               row.isLeave &&
                               row.leaveStatus === "pending"
                             ) {
-                              bgColor = "#FBF3DB";
+                              
                               isColored = true;
                             } else if (
                               row.isHoliday ||
@@ -902,14 +902,15 @@ export default function DashboardPage() {
                                 <TableCell className="px-3 py-2.5 text-sm text-[#9B9A97] whitespace-nowrap">
                                   {row.sno}
                                 </TableCell>
-                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
-                                  {row.project}
-                                </TableCell>
+                               
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
                                   {!isSameDateAsPrev ? row.date : ""}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
                                   {!isSameDateAsPrev ? row.day : ""}
+                                </TableCell>
+                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+                                  {row.project}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] text-center font-medium whitespace-nowrap">
                                   {row.hours}
@@ -917,13 +918,18 @@ export default function DashboardPage() {
                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F]">
                                   {row.activities}
                                   {row.leaveStatus === "pending" && (
-                                    <span className="ml-2 text-xs text-[#CB8907] font-medium">
+                                    <span className=" font-bold">
                                       (Pending)
                                     </span>
                                   )}
                                   {row.leaveStatus === "rejected" && (
-                                    <span className="ml-2 text-xs text-[#C2312B] font-medium">
+                                    <span className="font-bold">
                                       (Rejected)
+                                    </span>
+                                  )}
+                                  {row.leaveStatus === "approved" && (
+                                    <span className="font-bold">
+                                      (Approved)
                                     </span>
                                   )}
                                 </TableCell>
@@ -1001,13 +1007,18 @@ export default function DashboardPage() {
                               <p className="text-sm text-[#37352F]">
                                 {row.activities}
                                 {row.leaveStatus === "pending" && (
-                                  <span className="ml-2 text-xs text-[#CB8907] font-medium">
+                                  <span>
                                     (Pending)
                                   </span>
                                 )}
                                 {row.leaveStatus === "rejected" && (
-                                  <span className="ml-2 text-xs text-[#C2312B] font-medium">
+                                  <span>
                                     (Rejected)
+                                  </span>
+                                )}
+                                {row.leaveStatus === "approved" && (
+                                  <span>
+                                    (Approved)
                                   </span>
                                 )}
                               </p>

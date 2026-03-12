@@ -38,6 +38,7 @@ interface LeaveRequest {
 interface LeaveTableProps {
   leaves: LeaveRequest[];
   isLoading: boolean;
+  showEmployee?: boolean; 
 }
 
 // Helper function to format duration
@@ -51,7 +52,7 @@ const formatDuration = (leave: LeaveRequest) => {
   return days === 1 ? "1 Day" : `${days} Days`;
 };
 
-export function LeaveTable({ leaves, isLoading }: LeaveTableProps) {
+export function LeaveTable({ leaves, isLoading, showEmployee = false }: LeaveTableProps) {
   if (isLoading) {
     return <LoadingState />;
   }
@@ -68,6 +69,7 @@ export function LeaveTable({ leaves, isLoading }: LeaveTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
+          {showEmployee && <TableHead>Employee</TableHead>}
           <TableHead>Leave Type</TableHead>
           <TableHead>Applied Date</TableHead>
           <TableHead>Start Date</TableHead>
@@ -79,6 +81,12 @@ export function LeaveTable({ leaves, isLoading }: LeaveTableProps) {
       <TableBody>
         {leaves.map((leave) => (
           <TableRow key={leave.id}>
+            {showEmployee && (
+              <TableCell className="font-medium">
+                <div>{leave.user.name}</div>
+                <div className="text-xs text-muted-foreground">{leave.user.email}</div>
+              </TableCell>
+            )}
             <TableCell className="font-medium">
               {leave.leaveType.name}
             </TableCell>
