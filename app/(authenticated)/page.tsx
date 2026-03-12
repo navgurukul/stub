@@ -479,59 +479,59 @@ export default function DashboardPage() {
           <div className="w-full max-w-7xl space-y-6">
             {/* Header for Statistics - Data cycle info */}
             <div className="mb-3">
-              <p className="text-sm text-[#9B9A97]">
+              <p className="text-sm text-muted-foreground">
                 Data shown is according to cycle: 26th to 25th of the month
               </p>
             </div>
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border border-[#E9E9E7]">
+              <Card className="border border-border">
                 <CardContent className="pt-6">
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Total Hours Logged
                     </p>
-                    <p className="text-3xl font-bold text-[#37352F]">
+                    <p className="text-3xl font-bold text-foreground">
                       {monthlyData?.totals.timesheetHours || 0}
                     </p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border border-[#E9E9E7]">
+              <Card className="border border-border">
                 <CardContent className="pt-6">
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Leave Days
                     </p>
-                    <p className="text-3xl font-bold text-[#37352F]">
+                    <p className="text-3xl font-bold text-foreground">
                       {leaveDaysDisplay}
                     </p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border border-[#E9E9E7]">
+              <Card className="border border-border">
                 <CardContent className="pt-6">
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Lifelines Remaining
                     </p>
-                    <p className="text-3xl font-bold text-[#37352F]">
+                    <p className="text-3xl font-bold text-foreground">
                       {user?.backfill?.remaining ?? 0}
                     </p>
-                    <p className="text-xs text-[#9B9A97]">
+                    <p className="text-xs text-muted-foreground">
                       out of {user?.backfill?.limit ?? 0} available
                     </p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border border-[#E9E9E7]">
+              <Card className="border border-border">
                 <CardContent className="pt-6">
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-[#9B9A97] uppercase tracking-wide">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Total Payable Days
                     </p>
-                    <p className="text-3xl font-bold text-[#37352F]">
+                    <p className="text-3xl font-bold text-foreground">
                       {payableDays}/{totalCycleDays}
                     </p>
                   </div>
@@ -540,22 +540,22 @@ export default function DashboardPage() {
             </div>
 
             {/* Timesheet Table View */}
-            <Card className="border border-[#E9E9E7] shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+            <Card className="border border-border shadow-sm">
               <CardContent className="p-4 sm:p-6">
                 {/* Header Section */}
                 <div className="mb-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                     <div className="space-y-0.5">
-                      <h2 className="text-xl font-semibold text-[#37352F]">
+                      <h2 className="text-xl font-semibold text-foreground">
                         Timesheet
                       </h2>
-                      <p className="text-sm text-[#9B9A97] break-all">
+                      <p className="text-sm text-muted-foreground break-all">
                         {user?.email || "user@example.com"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
                       {/* View toggle */}
-                      <div className="flex items-center border border-[#E9E9E7] rounded-[4px] overflow-hidden">
+                      <div className="flex items-center border border-border rounded-[4px] overflow-hidden">
                         <button
                           onClick={() => {
                             setViewMode("table");
@@ -567,8 +567,8 @@ export default function DashboardPage() {
                           title="Table view"
                           className={`h-7 w-7 flex items-center justify-center transition-colors cursor-pointer ${
                             viewMode === "table"
-                              ? "bg-[#37352F] text-white"
-                              : "bg-transparent hover:bg-[#F7F7F5] text-[#37352F]"
+                              ? "bg-foreground text-background"
+                              : "bg-transparent hover:bg-secondary-background text-foreground"
                           }`}
                         >
                           <List className="h-3.5 w-3.5" />
@@ -581,8 +581,8 @@ export default function DashboardPage() {
                           title="Grid view"
                           className={`h-7 w-7 flex items-center justify-center transition-colors cursor-pointer ${
                             viewMode === "grid"
-                              ? "bg-[#37352F] text-white"
-                              : "bg-transparent hover:bg-[#F7F7F5] text-[#37352F]"
+                              ? "bg-foreground text-background"
+                              : "bg-transparent hover:bg-secondary-background text-foreground"
                           }`}
                         >
                           <LayoutGrid className="h-3.5 w-3.5" />
@@ -591,13 +591,13 @@ export default function DashboardPage() {
                       <button
                         onClick={handlePreviousMonth}
                         disabled={isLoading}
-                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        className="h-7 w-7 bg-transparent hover:bg-secondary-background border border-border rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
-                        <ChevronLeft className="h-4 w-4 text-[#37352F]" />
+                        <ChevronLeft className="h-4 w-4 text-foreground" />
                       </button>
-                      <div className="text-center px-3 py-1.5 rounded-[4px] border border-[#E9E9E7] bg-white">
+                      <div className="text-center px-3 py-1.5 rounded-[4px] border border-border bg-background">
                         {monthlyData?.period && (
-                          <p className="text-xs text-[#9B9A97] whitespace-nowrap">
+                          <p className="text-xs text-muted-foreground whitespace-nowrap">
                             {format(
                               parseISO(monthlyData.period.start),
                               "dd/MM/yyyy"
@@ -613,9 +613,9 @@ export default function DashboardPage() {
                       <button
                         onClick={handleNextMonth}
                         disabled={isLoading}
-                        className="h-7 w-7 bg-transparent hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        className="h-7 w-7 bg-transparent hover:bg-secondary-background border border-border rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
-                        <ChevronRight className="h-4 w-4 text-[#37352F]" />
+                        <ChevronRight className="h-4 w-4 text-foreground" />
                       </button>
                     </div>
                   </div>
@@ -623,12 +623,12 @@ export default function DashboardPage() {
 
                 {/* Table Section */}
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-16 bg-white rounded-[4px]">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#E9E9E7] border-t-[#37352F]"></div>
+                  <div className="flex items-center justify-center py-16 bg-background rounded-[4px]">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-border border-t-foreground"></div>
                   </div>
                 ) : error ? (
-                  <div className="text-center py-16 bg-white rounded-[4px]">
-                    <p className="text-[#C2312B] mb-4 text-sm">{error}</p>
+                  <div className="text-center py-16 bg-background rounded-[4px]">
+                    <p className="text-accent mb-4 text-sm">{error}</p>
                     <Button
                       variant="outline"
                       onClick={() => setCurrentMonth(new Date(currentMonth))}
@@ -637,8 +637,8 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 ) : timesheetRows.length === 0 && viewMode === "table" ? (
-                  <div className="text-center py-16 bg-white rounded-[4px] border border-[#E9E9E7]">
-                    <p className="text-[#9B9A97] text-sm">
+                  <div className="text-center py-16 bg-background rounded-[4px] border border-border">
+                    <p className="text-muted-foreground text-sm">
                       No records found for this month
                     </p>
                   </div>
@@ -684,11 +684,12 @@ export default function DashboardPage() {
                             parsedDate.getDate() === todayMidnight.getDate();
 
                           // Card background
-                          let cardBg = "#FFFFFF";
-                          if (isUnfilled) cardBg = "#FAFAFA";
+                          let cardBg = "var(--background)";
+                          if (isUnfilled)
+                            cardBg = "var(--secondary-background)";
                           else if (day.timesheet?.state === "rejected")
-                            cardBg = "#FDEAEA";
-                          else if (isOff) cardBg = "#E6F4EA";
+                            cardBg = "var(--color-red-bg)";
+                          else if (isOff) cardBg = "var(--color-green-bg)";
 
                           const timesheetEntries = day.timesheet?.entries ?? [];
                           const leaveEntries = day.leaves?.entries ?? [];
@@ -712,39 +713,39 @@ export default function DashboardPage() {
                               style={{
                                 backgroundColor: cardBg,
                                 border: isToday
-                                  ? "1.5px solid #6B6864"
-                                  : "1px solid #E9E9E7",
+                                  ? "1.5px solid var(--muted)"
+                                  : "1px solid var(--border)",
                               }}
                             >
                               {/* Card header */}
-                              <div className="px-3 py-2 border-b border-[#E9E9E7] flex items-center justify-between">
+                              <div className="px-3 py-2 border-b border-border flex items-center justify-between">
                                 <div>
-                                  <p className="text-xs font-semibold text-[#37352F]">
+                                  <p className="text-xs font-semibold text-foreground">
                                     {displayDate}
                                   </p>
-                                  <p className="text-xs text-[#9B9A97]">
+                                  <p className="text-xs text-muted-foreground">
                                     {dayOfWeek}
                                   </p>
                                 </div>
                                 {totalHours > 0 && (
-                                  <span className="text-xs font-bold text-[#37352F]">
+                                  <span className="text-xs font-bold text-foreground">
                                     {totalHours}h
                                   </span>
                                 )}
                               </div>
 
                               {/* Body */}
-                              <div className="divide-y divide-[#E9E9E7]">
+                              <div className="divide-y divide-border">
                                 {isOff && !hasTimesheet && !hasLeave && (
                                   <div className="px-3 py-2">
-                                    <p className="text-xs text-[#9B9A97]">
+                                    <p className="text-xs text-muted-foreground">
                                       {offLabel}
                                     </p>
                                   </div>
                                 )}
                                 {isUnfilled && (
                                   <div className="px-3 py-2">
-                                    <p className="text-xs text-[#9B9A97] italic">
+                                    <p className="text-xs text-muted-foreground italic">
                                       No entry
                                     </p>
                                   </div>
@@ -754,18 +755,18 @@ export default function DashboardPage() {
                                     key={`ts-${i}`}
                                     className="px-3 py-2 space-y-0.5"
                                   >
-                                    <p className="text-xs font-medium text-[#37352F] truncate">
+                                    <p className="text-xs font-medium text-foreground truncate">
                                       {entry.projectName || "-"}
                                     </p>
-                                    <p className="text-xs text-[#9B9A97] line-clamp-2">
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
                                       {entry.taskDescription || "-"}
                                     </p>
                                     <div className="flex items-center justify-between pt-0.5">
-                                      <span className="text-xs text-[#9B9A97]">
+                                      <span className="text-xs text-muted-foreground">
                                         {entry.hours}h
                                       </span>
                                       {day.timesheet?.state === "rejected" && (
-                                        <span className="text-xs text-[#C2312B] font-medium">
+                                        <span className="text-xs text-accent font-medium">
                                           Rejected
                                         </span>
                                       )}
@@ -781,9 +782,9 @@ export default function DashboardPage() {
                                       : "approved";
                                   const leaveBg =
                                     leaveStatus === "rejected"
-                                      ? "#FDEAEA"
+                                      ? "var(--color-red-bg)"
                                       : leaveStatus === "pending"
-                                      ? "#FBF3DB"
+                                      ? "var(--color-yellow-bg)"
                                       : undefined;
                                   return (
                                     <div
@@ -795,20 +796,20 @@ export default function DashboardPage() {
                                           : undefined
                                       }
                                     >
-                                      <p className="text-xs font-medium text-[#37352F] truncate">
+                                      <p className="text-xs font-medium text-foreground truncate">
                                         Leave — {entry.leaveType.name}
                                       </p>
                                       <div className="flex items-center justify-between pt-0.5">
-                                        <span className="text-xs text-[#9B9A97]">
+                                        <span className="text-xs text-muted-foreground">
                                           {entry.hours}h
                                         </span>
                                         {leaveStatus === "pending" && (
-                                          <span className="text-xs text-[#CB8907] font-medium">
+                                          <span className="text-xs text-yellow-text font-medium">
                                             Pending
                                           </span>
                                         )}
                                         {leaveStatus === "rejected" && (
-                                          <span className="text-xs text-[#C2312B] font-medium">
+                                          <span className="text-xs text-accent font-medium">
                                             Rejected
                                           </span>
                                         )}
@@ -869,23 +870,21 @@ export default function DashboardPage() {
                               (row.isLeave && row.leaveStatus === "rejected") ||
                               row.timesheetState === "rejected"
                             ) {
-                            
                               isColored = true;
                             } else if (
                               row.isLeave &&
                               row.leaveStatus === "pending"
                             ) {
-                              
                               isColored = true;
                             } else if (
                               row.isHoliday ||
                               row.isWeekend ||
                               (row.isLeave && row.leaveStatus === "approved")
                             ) {
-                              bgColor = "#E6F4EA";
+                              bgColor = "var(--color-green-bg)";
                               isColored = true;
                             } else {
-                              bgColor = "#FFFFFF";
+                              bgColor = "var(--background)";
                             }
 
                             return (
@@ -899,23 +898,23 @@ export default function DashboardPage() {
                                 }}
                                 className={isColored ? "hover:opacity-95" : ""}
                               >
-                                <TableCell className="px-3 py-2.5 text-sm text-[#9B9A97] whitespace-nowrap">
+                                <TableCell className="px-3 py-2.5 text-sm text-muted-foreground whitespace-nowrap">
                                   {row.sno}
                                 </TableCell>
-                               
-                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+
+                                <TableCell className="px-3 py-2.5 text-sm text-foreground whitespace-nowrap">
                                   {!isSameDateAsPrev ? row.date : ""}
                                 </TableCell>
-                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+                                <TableCell className="px-3 py-2.5 text-sm text-foreground whitespace-nowrap">
                                   {!isSameDateAsPrev ? row.day : ""}
                                 </TableCell>
-                                 <TableCell className="px-3 py-2.5 text-sm text-[#37352F] whitespace-nowrap">
+                                <TableCell className="px-3 py-2.5 text-sm text-foreground whitespace-nowrap">
                                   {row.project}
                                 </TableCell>
-                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F] text-center font-medium whitespace-nowrap">
+                                <TableCell className="px-3 py-2.5 text-sm text-foreground text-center font-medium whitespace-nowrap">
                                   {row.hours}
                                 </TableCell>
-                                <TableCell className="px-3 py-2.5 text-sm text-[#37352F]">
+                                <TableCell className="px-3 py-2.5 text-sm text-foreground">
                                   {row.activities}
                                   {row.leaveStatus === "pending" && (
                                     <span className=" font-bold">
@@ -955,71 +954,67 @@ export default function DashboardPage() {
                           (row.isLeave && row.leaveStatus === "rejected") ||
                           row.timesheetState === "rejected"
                         ) {
-                          bgColor = "#FDEAEA";
+                          bgColor = "var(--color-red-bg)";
                         } else if (
                           row.isLeave &&
                           row.leaveStatus === "pending"
                         ) {
-                          bgColor = "#FBF3DB";
+                          bgColor = "var(--color-yellow-bg)";
                         } else if (
                           row.isHoliday ||
                           row.isWeekend ||
                           (row.isLeave && row.leaveStatus === "approved")
                         ) {
-                          bgColor = "#E6F4EA";
+                          bgColor = "var(--color-green-bg)";
                         } else {
-                          bgColor = "#FFFFFF";
+                          bgColor = "var(--background)";
                         }
 
                         return (
                           <div
                             key={`${row.date}-${index}`}
-                            className="border border-[#E9E9E7] rounded-[4px] p-4 space-y-2"
+                            className="border border-border rounded-[4px] p-4 space-y-2"
                             style={{ backgroundColor: bgColor }}
                           >
                             <div className="flex justify-between items-start">
                               <div className="space-y-0.5 flex-1">
-                                <p className="text-xs text-[#9B9A97]">
+                                <p className="text-xs text-muted-foreground">
                                   #{row.sno}
                                 </p>
                                 {!isSameDateAsPrev && (
-                                  <p className="text-sm font-medium text-[#37352F]">
+                                  <p className="text-sm font-medium text-foreground">
                                     {row.date} - {row.day}
                                   </p>
                                 )}
                               </div>
                               <div className="text-right">
-                                <p className="text-xl font-bold text-[#37352F]">
+                                <p className="text-xl font-bold text-foreground">
                                   {row.hours}h
                                 </p>
                               </div>
                             </div>
                             <div className="space-y-0.5">
-                              <p className="text-xs text-[#9B9A97]">Project</p>
-                              <p className="text-sm text-[#37352F]">
+                              <p className="text-xs text-muted-foreground">
+                                Project
+                              </p>
+                              <p className="text-sm text-foreground">
                                 {row.project}
                               </p>
                             </div>
                             <div className="space-y-0.5">
-                              <p className="text-xs text-[#9B9A97]">
+                              <p className="text-xs text-muted-foreground">
                                 Activities
                               </p>
-                              <p className="text-sm text-[#37352F]">
+                              <p className="text-sm text-foreground">
                                 {row.activities}
                                 {row.leaveStatus === "pending" && (
-                                  <span>
-                                    (Pending)
-                                  </span>
+                                  <span>(Pending)</span>
                                 )}
                                 {row.leaveStatus === "rejected" && (
-                                  <span>
-                                    (Rejected)
-                                  </span>
+                                  <span>(Rejected)</span>
                                 )}
                                 {row.leaveStatus === "approved" && (
-                                  <span>
-                                    (Approved)
-                                  </span>
+                                  <span>(Approved)</span>
                                 )}
                               </p>
                             </div>

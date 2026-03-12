@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="relative w-full overflow-auto rounded-[4px] border border-[#C0C0BC]">
+    <div className="relative w-full overflow-auto rounded-[4px] border border-border">
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
@@ -19,7 +19,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
     <thead
       data-slot="table-header"
       className={cn(
-        "[&_tr]:border-b [&_tr]:border-[#C0C0BC] bg-[#37352F]",
+        "[&_tr]:border-b [&_tr]:border-border bg-foreground",
         className
       )}
       {...props}
@@ -42,7 +42,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t border-[#C0C0BC] bg-[#F7F7F5] text-[#37352F] last:[&>tr]:border-b-0",
+        "border-t border-border bg-secondary-background text-foreground last:[&>tr]:border-b-0",
         className
       )}
       {...props}
@@ -55,7 +55,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-[#C0C0BC] transition-colors text-[#37352F] bg-white hover:bg-[#F7F7F5] data-[state=selected]:bg-[#E8F2F8] [thead_&]:bg-transparent [thead_&]:hover:bg-transparent",
+        "border-b border-border transition-colors text-foreground bg-background hover:bg-secondary-background data-[state=selected]:bg-secondary-background [thead_&]:bg-transparent [thead_&]:hover:bg-transparent",
         className
       )}
       {...props}

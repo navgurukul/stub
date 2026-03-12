@@ -42,13 +42,13 @@ export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
   return (
     <header
       className={cn(
-        "flex h-11 shrink-0 items-center gap-2 bg-white border-b border-[#E9E9E7] px-2",
+        "flex h-11 shrink-0 items-center gap-2 bg-background border-b border-border px-2",
         className
       )}
     >
       <div className="flex items-center gap-1 px-2">
-        <SidebarTrigger className="-ml-1 size-7 text-[#9B9A97] hover:text-[#37352F] hover:bg-[#F7F7F5] rounded-[4px]" />
-        <div className="w-px h-4 bg-[#E9E9E7] mx-1" />
+        <SidebarTrigger className="-ml-1 size-7 text-muted-foreground hover:text-foreground hover:bg-secondary-background rounded-[4px]" />
+        <div className="w-px h-4 bg-border mx-1" />
         <Breadcrumb>
           <BreadcrumbList className="gap-1">
             {crumbs.map((crumb, i) => {
@@ -57,21 +57,19 @@ export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
                 <Fragment key={`${crumb.label}-${i}`}>
                   <BreadcrumbItem>
                     {isLast ? (
-                      <BreadcrumbPage className="text-sm font-medium text-[#37352F]">
+                      <BreadcrumbPage className="text-sm font-medium text-foreground">
                         {crumb.label}
                       </BreadcrumbPage>
                     ) : (
                       <BreadcrumbLink
                         href={crumb.href ?? "#"}
-                        className="text-sm text-[#9B9A97] hover:text-[#37352F] transition-colors"
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {crumb.label}
                       </BreadcrumbLink>
                     )}
                   </BreadcrumbItem>
-                  {!isLast && (
-                    <BreadcrumbSeparator className="text-[#E9E9E7]" />
-                  )}
+                  {!isLast && <BreadcrumbSeparator className="text-border" />}
                 </Fragment>
               );
             })}
@@ -84,7 +82,7 @@ export function AppHeader({ crumbs, className, right }: AppHeaderProps) {
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="h-9 px-3 text-[#37352F] hover:bg-[#F7F7F5] flex items-center gap-2"
+            className="h-9 px-3 text-foreground hover:bg-secondary-background flex items-center gap-2"
             title="Logout"
           >
             <LogOut className="h-4 w-4" />

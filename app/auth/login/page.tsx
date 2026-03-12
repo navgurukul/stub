@@ -54,17 +54,17 @@ export default function LoginPage() {
       <div className="flex h-full flex-col items-center justify-center">
         <PageHeader className="items-center text-center">
           <div className="flex items-center gap-2 justify-center">
-            <Command className="size-12 text-[#37352F]" />
+            <Command className="size-12 text-foreground" />
           </div>
           <PageHeading>S.T.U.B</PageHeading>
-          <PageDescription className="text-[#9B9A97]">
+          <PageDescription className="text-muted-foreground">
             Simple Tracking Until Better
           </PageDescription>
         </PageHeader>
         <div className="flex justify-center">
           <GoogleLoginButton />
         </div>
-        <p className="mt-8 text-center text-[13px] text-[#9B9A97]">
+        <p className="mt-8 text-center text-[13px] text-muted-foreground">
           Access restricted to authorized accounts only.
         </p>
       </div>

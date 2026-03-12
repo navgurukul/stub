@@ -137,15 +137,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-[#E9E9E7] bg-white"
+      className="border-r border-border bg-background"
       {...props}
     >
       {/* Logo / Brand */}
-      <SidebarHeader className="h-11 justify-center px-3 border-b border-[#E9E9E7]">
+      <SidebarHeader className="h-11 justify-center px-3 border-b border-border">
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-              <div className="flex items-center justify-center size-6 rounded-[4px] bg-[#37352F] text-white flex-shrink-0">
+              <div className="flex items-center justify-center size-6 rounded-[4px] bg-foreground text-background flex-shrink-0">
                 <Command className="size-4" />
               </div>
               <Link
@@ -153,10 +153,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden"
                 title="We dont have satisfactory output tracking yet so until then we will do input tracking"
               >
-                <span className="text-sm font-semibold text-[#37352F] truncate block">
+                <span className="text-sm font-semibold text-foreground truncate block">
                   S.T.U.B
                 </span>
-                <span className="text-xs text-[#9B9A97] truncate block">
+                <span className="text-xs text-muted-foreground truncate block">
                   Simple Tracking Until Better
                 </span>
               </Link>
@@ -178,9 +178,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           isActive={isParentActive(item, pathname)}
                           tooltip={item.title}
                           className={cn(
-                            "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                            "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                             isParentActive(item, pathname) &&
-                              "bg-[#F7F7F5] font-medium text-[#37352F]"
+                              "bg-secondary-background font-medium text-foreground"
                           )}
                         >
                           {item.icon && <item.icon style={ICON_SIZE} />}
@@ -190,13 +190,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <DropdownMenuContent
                         side={isMobile ? "bottom" : "right"}
                         align="start"
-                        className="min-w-44 rounded-[4px] border border-[#E9E9E7] shadow-[0_1px_3px_rgba(0,0,0,0.1)] bg-white"
+                        className="min-w-44 rounded-[4px] border border-border shadow-sm bg-background"
                       >
                         {item.items?.map((subItem) => (
                           <DropdownMenuItem
                             key={subItem.title}
                             asChild
-                            className="text-sm text-[#37352F] rounded-[4px] hover:bg-[#F7F7F5] cursor-pointer"
+                            className="text-sm text-foreground rounded-[4px] hover:bg-secondary-background cursor-pointer"
                           >
                             <a href={subItem.url}>{subItem.title}</a>
                           </DropdownMenuItem>
@@ -217,30 +217,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           isActive={isParentActive(item, pathname)}
                           tooltip={item.title}
                           className={cn(
-                            "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                            "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                             isParentActive(item, pathname) &&
-                              "bg-[#F7F7F5] font-medium text-[#37352F]"
+                              "bg-secondary-background font-medium text-foreground"
                           )}
                         >
                           {item.icon && <item.icon style={ICON_SIZE} />}
                           <span className="flex-1">{item.title}</span>
                           <ChevronDown
                             style={{ width: 14, height: 14 }}
-                            className="text-[#9B9A97] transition-transform duration-150 group-data-[state=open]/collapsible:rotate-180"
+                            className="text-muted-foreground transition-transform duration-150 group-data-[state=open]/collapsible:rotate-180"
                           />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <SidebarMenuSub className="ml-4 border-l border-[#E9E9E7] pl-2 mt-0.5 gap-0.5">
+                        <SidebarMenuSub className="ml-4 border-l border-border pl-2 mt-0.5 gap-0.5">
                           {item.items?.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton
                                 asChild
                                 isActive={pathname === subItem.url}
                                 className={cn(
-                                  "rounded-[4px] h-7 px-2 text-sm text-[#9B9A97] hover:text-[#37352F] hover:bg-[#F7F7F5]",
+                                  "rounded-[4px] h-7 px-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary-background",
                                   pathname === subItem.url &&
-                                    "text-[#37352F] bg-[#F7F7F5] font-medium"
+                                    "text-foreground bg-secondary-background font-medium"
                                 )}
                               >
                                 <a href={subItem.url}>
@@ -261,9 +261,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     isActive={pathname === item.url}
                     tooltip={item.title}
                     className={cn(
-                      "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                      "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                       pathname === item.url &&
-                        "bg-[#F7F7F5] font-medium text-[#37352F]"
+                        "bg-secondary-background font-medium text-foreground"
                     )}
                   >
                     <a href={item.url}>
@@ -279,7 +279,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         {filteredAdminLinks.length > 0 && (
           <SidebarGroup className="p-0 mt-4">
-            <p className="px-2 mb-1 text-xs font-medium text-[#9B9A97] uppercase tracking-wider">
+            <p className="px-2 mb-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Admin
             </p>
             <SidebarMenu className="gap-0.5">
@@ -290,9 +290,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     isActive={pathname === item.url}
                     tooltip={item.title}
                     className={cn(
-                      "rounded-[4px] h-8 px-2 text-sm text-[#6B6B6B] hover:bg-[#F7F7F5] hover:text-[#37352F]",
+                      "rounded-[4px] h-8 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
                       pathname === item.url &&
-                        "bg-[#F7F7F5] font-medium text-[#37352F]"
+                        "bg-secondary-background font-medium text-foreground"
                     )}
                   >
                     <a href={item.url}>
@@ -308,13 +308,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       {/* User Footer */}
-      <SidebarFooter className="border-t border-[#E9E9E7] px-2 py-2">
+      <SidebarFooter className="border-t border-border px-2 py-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
-                  className="rounded-[4px] h-9 px-2 hover:bg-[#F7F7F5] w-full"
+                  className="rounded-[4px] h-9 px-2 hover:bg-secondary-background w-full"
                   size="lg"
                 >
                   <Avatar className="h-6 w-6 flex-shrink-0">
@@ -322,53 +322,53 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       src={user?.avatarUrl || ""}
                       alt={user?.name || "User"}
                     />
-                    <AvatarFallback className="text-xs bg-[#F7F7F5] text-[#37352F] font-medium">
+                    <AvatarFallback className="text-xs bg-secondary-background text-foreground font-medium">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left min-w-0 group-data-[collapsible=icon]:hidden">
-                    <span className="truncate text-sm font-medium text-[#37352F]">
+                    <span className="truncate text-sm font-medium text-foreground">
                       {user?.name || "User"}
                     </span>
-                    <span className="truncate text-xs text-[#9B9A97]">
+                    <span className="truncate text-xs text-muted-foreground">
                       {user?.email || ""}
                     </span>
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-56 rounded-[4px] border border-[#E9E9E7] shadow-[0_1px_3px_rgba(0,0,0,0.1)] bg-white"
+                className="w-56 rounded-[4px] border border-border shadow-sm bg-background"
                 side={isMobile ? "bottom" : "right"}
                 align="end"
                 sideOffset={4}
               >
-                <div className="flex items-center gap-2 px-3 py-2 border-b border-[#E9E9E7]">
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
                   <Avatar className="h-7 w-7">
                     <AvatarImage
                       src={user?.avatarUrl || ""}
                       alt={user?.name || "User"}
                     />
-                    <AvatarFallback className="text-xs bg-[#F7F7F5] text-[#37352F]">
+                    <AvatarFallback className="text-xs bg-secondary-background text-foreground">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-[#37352F] truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {user?.name || "User"}
                     </p>
-                    <p className="text-xs text-[#9B9A97] truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {user?.email || ""}
                     </p>
                   </div>
                 </div>
-                <DropdownMenuSeparator className="bg-[#E9E9E7]" />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem
                   onClick={logout}
-                  className="text-sm text-[#37352F] rounded-[4px] bg-[#F7F7F5] hover:bg-[#37352F] hover:text-[#F7F7F5] cursor-pointer mx-1 my-1"
+                  className="text-sm text-foreground rounded-[4px] bg-secondary-background hover:bg-foreground hover:text-background cursor-pointer mx-1 my-1"
                 >
                   <LogOut
                     style={{ width: 14, height: 14 }}
-                    className="text-[#9B9A97]"
+                    className="text-muted-foreground"
                   />
                   Log out
                 </DropdownMenuItem>

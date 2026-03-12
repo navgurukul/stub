@@ -6,24 +6,25 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center whitespace-nowrap rounded-[4px] text-sm font-medium ring-offset-white gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#37352F] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 transition-colors duration-150",
+  "inline-flex cursor-pointer items-center justify-center whitespace-nowrap rounded-[4px] text-sm font-medium ring-offset-background gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 transition-colors duration-150",
   {
     variants: {
       variant: {
         default:
-          "bg-[#37352F] text-white border border-[#37352F] hover:bg-[#000000]",
-        noShadow: "bg-[#37352F] text-white border border-[#37352F]",
+          "bg-foreground text-background border border-foreground hover:bg-muted",
+        noShadow: "bg-foreground text-background border border-foreground",
         neutral:
-          "bg-transparent text-[#37352F] border border-[#E9E9E7] hover:bg-[#F7F7F5]",
+          "bg-transparent text-foreground border border-border hover:bg-secondary-background",
         reverse:
-          "bg-[#F7F7F5] text-[#37352F] border border-[#E9E9E7] hover:bg-[#EFEFEF]",
+          "bg-secondary-background text-foreground border border-border hover:bg-background",
         transparent:
-          "bg-transparent text-[#37352F] border border-[#E9E9E7] hover:bg-[#F7F7F5]",
-        ghost: "bg-transparent text-[#37352F] border-0 hover:bg-[#F7F7F5]",
+          "bg-transparent text-foreground border border-border hover:bg-secondary-background",
+        ghost:
+          "bg-transparent text-foreground border-0 hover:bg-secondary-background",
         outline:
-          "bg-white text-[#37352F] border border-[#E9E9E7] hover:bg-[#F7F7F5]",
+          "bg-background text-foreground border border-border hover:bg-secondary-background",
         destructive:
-          "bg-[#FDEAEA] text-[#C2312B] border border-[#C2312B] hover:bg-[#C2312B] hover:text-white",
+          "bg-color-red-bg text-accent border border-accent hover:bg-accent hover:text-background",
       },
       size: {
         default: "h-8 px-3 py-1.5",

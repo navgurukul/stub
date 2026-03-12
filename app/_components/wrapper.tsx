@@ -6,8 +6,11 @@ interface PageWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
 
 function PageWrapper({ children, className, ...props }: PageWrapperProps) {
   return (
-    <div className={cn("min-h-dvh bg-[#F7F7F5] p-6", className)} {...props}>
-      <div className="mx-auto h-full text-[#37352F] text-left">{children}</div>
+    <div
+      className={cn("min-h-dvh bg-secondary-background p-6", className)}
+      {...props}
+    >
+      <div className="mx-auto h-full text-foreground text-left">{children}</div>
     </div>
   );
 }
@@ -19,7 +22,7 @@ function PageHeading({
   return (
     <h1
       className={cn(
-        "text-[30px] font-bold text-[#37352F] leading-tight",
+        "text-[30px] font-bold text-foreground leading-tight",
         className
       )}
       {...props}
@@ -45,7 +48,10 @@ function PageDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("text-[14px] text-[#9B9A97] leading-relaxed", className)}
+      className={cn(
+        "text-[14px] text-muted-foreground leading-relaxed",
+        className
+      )}
       {...props}
     />
   );
