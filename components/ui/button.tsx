@@ -6,26 +6,32 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex cursor-pointer items-center justify-center whitespace-nowrap rounded-[4px] text-sm font-medium ring-offset-white gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#37352F] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 transition-colors duration-150",
   {
     variants: {
       variant: {
         default:
-          "text-main-foreground bg-main border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
-        noShadow: "text-main-foreground bg-main border-2 border-border",
+          "bg-[#37352F] text-white border border-[#37352F] hover:bg-[#000000]",
+        noShadow: "bg-[#37352F] text-white border border-[#37352F]",
         neutral:
-          "bg-secondary-background text-foreground border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
+          "bg-transparent text-[#37352F] border border-[#E9E9E7] hover:bg-[#F7F7F5]",
         reverse:
-          "text-main-foreground bg-main border-2 border-border hover:translate-x-reverseBoxShadowX hover:translate-y-reverseBoxShadowY hover:shadow-shadow",
+          "bg-[#F7F7F5] text-[#37352F] border border-[#E9E9E7] hover:bg-[#EFEFEF]",
         transparent:
-          "bg-transparent text-main-foreground border-2 border-border ",
+          "bg-transparent text-[#37352F] border border-[#E9E9E7] hover:bg-[#F7F7F5]",
+        ghost: "bg-transparent text-[#37352F] border-0 hover:bg-[#F7F7F5]",
+        outline:
+          "bg-white text-[#37352F] border border-[#E9E9E7] hover:bg-[#F7F7F5]",
+        destructive:
+          "bg-[#FDEAEA] text-[#C2312B] border border-[#C2312B] hover:bg-[#C2312B] hover:text-white",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 px-3",
-        lg: "h-11 px-8",
-        xl: "h-12 px-10",
-        icon: "size-9",
+        default: "h-8 px-3 py-1.5",
+        xs: "h-6 px-2 text-xs",
+        sm: "h-7 px-2.5 text-xs",
+        lg: "h-9 px-4",
+        xl: "h-10 px-5",
+        icon: "size-7 p-0",
       },
     },
     defaultVariants: {

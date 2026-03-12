@@ -4,13 +4,10 @@ import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="relative w-full overflow-auto rounded-base">
+    <div className="relative w-full overflow-auto rounded-[4px] border border-[#C0C0BC]">
       <table
         data-slot="table"
-        className={cn(
-          "w-full caption-bottom border-2 border-border text-sm",
-          className
-        )}
+        className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />
     </div>
@@ -21,7 +18,10 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b-2 [&_tr]:border-border", className)}
+      className={cn(
+        "[&_tr]:border-b [&_tr]:border-[#C0C0BC] bg-[#37352F]",
+        className
+      )}
       {...props}
     />
   );
@@ -42,7 +42,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t-2 border-border bg-main font-base text-main-foreground last:[&>tr]:border-b-0",
+        "border-t border-[#C0C0BC] bg-[#F7F7F5] text-[#37352F] last:[&>tr]:border-b-0",
         className
       )}
       {...props}
@@ -55,7 +55,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b-2 border-border transition-colors text-main-foreground bg-main font-base data-[state=selected]:bg-secondary-background data-[state=selected]:text-main-foreground",
+        "border-b border-[#C0C0BC] transition-colors text-[#37352F] bg-white hover:bg-[#F7F7F5] data-[state=selected]:bg-[#E8F2F8] [thead_&]:bg-transparent [thead_&]:hover:bg-transparent",
         className
       )}
       {...props}
@@ -68,7 +68,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-12 px-4 text-left align-middle font-heading text-main-foreground [&:has([role=checkbox])]:pr-0",
+        "h-10 px-4 text-left align-middle text-xs font-semibold text-white uppercase tracking-wide [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

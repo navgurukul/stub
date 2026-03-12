@@ -1,17 +1,18 @@
 /**
  * LoadingState Component
- * Displays a loading spinner with message
+ * Displays skeleton loaders while project data is being fetched
  */
 
-import { Loader2 } from "lucide-react";
+import { TableLoadingState } from "@/components/ui/table-loading-state";
+
+const PROJECT_TABLE_COLUMNS = [
+  { header: "Department", skeletonWidth: "w-32" },
+  { header: "Project Name", skeletonWidth: "w-40" },
+  { header: "PM Email", skeletonWidth: "w-40" },
+  { header: "Budget", skeletonWidth: "w-32" },
+  { header: "Status", skeletonWidth: "w-20" },
+];
 
 export function LoadingState() {
-  return (
-    <div className="flex items-center justify-center h-[400px]">
-      <div className="text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
-        <p className="text-muted-foreground">Loading projects...</p>
-      </div>
-    </div>
-  );
+  return <TableLoadingState columns={PROJECT_TABLE_COLUMNS} />;
 }

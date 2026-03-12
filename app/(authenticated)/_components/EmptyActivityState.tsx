@@ -49,7 +49,7 @@ export function EmptyActivityState({
             <Link href="/tracker">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Track Activity
+                Log Activity
               </Button>
             </Link>
           )}

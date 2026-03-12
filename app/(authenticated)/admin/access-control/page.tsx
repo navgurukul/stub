@@ -1,5 +1,7 @@
 "use client";
 
+import { RoleProtectedRoute } from "@/app/_components/RoleProtectedRoute";
+import { ROLES } from "@/lib/rbac-constants";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import {
@@ -16,10 +18,9 @@ import { UserPlus, Search, Shield, Users, Key } from "lucide-react";
 
 export default function AccessControlPage() {
   return (
-    <>
+    <RoleProtectedRoute requiredRoles={ROLES.SUPER_ADMIN}>
       <AppHeader
         crumbs={[
-          { label: "Dashboard", href: "/" },
           { label: "Admin", href: "/admin/dashboard" },
           { label: "Access Control" },
         ]}
@@ -177,6 +178,6 @@ export default function AccessControlPage() {
           </Tabs>
         </div>
       </PageWrapper>
-    </>
+    </RoleProtectedRoute>
   );
 }

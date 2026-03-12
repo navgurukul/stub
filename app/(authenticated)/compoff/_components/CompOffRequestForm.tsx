@@ -41,91 +41,272 @@ import { cn } from "@/lib/utils";
 import apiClient from "@/lib/api-client";
 import { toast } from "sonner";
 import { API_PATHS, DATE_FORMATS, VALIDATION } from "@/lib/constants";
-import { mockDataService } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/use-auth";
+import { isNonWorkingDay } from "@/lib/leave-timesheet-validator";
+import { useRole } from "@/hooks/use-role";
+import { ROLES } from "@/lib/rbac-constants";
 
-const formSchema = z
-  .object({
-    employeeEmail: z.string().email("Please select a valid employee email."),
-    reasonForWorking: z
-      .string()
-      .min(
-        VALIDATION.MIN_LEAVE_REASON_LENGTH,
-        `Please provide at least ${VALIDATION.MIN_LEAVE_REASON_LENGTH} characters for the reason.`
-      ),
-    fromDate: z.date({
-      message: "From date is required.",
-    }),
-    toDate: z.date({
-      message: "To date is required.",
-    }),
-    durationType: z.string().min(1, "Please select a duration type."),
-  })
-  .refine((data) => data.toDate >= data.fromDate, {
-    message: "To date must be on or after the from date.",
-    path: ["toDate"],
-  });
+const formSchema = z.object({
+  userId: z.number().int().positive("Please select a valid employee."),
+  workDate: z
+    .date({
+      message: "Work date is required.",
+    })
+    .refine(
+      (date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date <= today;
+      },
+      {
+        message: "Comp-Off cannot be requested for future dates.",
+      }
+    ),
+  duration: z.enum(["half_day", "full_day"], {
+    message: "Please select a duration type.",
+  }),
+  notes: z
+    .string()
+    .min(
+      VALIDATION.MIN_LEAVE_REASON_LENGTH,
+      `Please provide at least ${VALIDATION.MIN_LEAVE_REASON_LENGTH} characters for the notes.`
+    ),
+});
+
+interface Employee {
+  id: number;
+  name: string;
+  email: string;
+}
 
 export function CompOffRequestForm() {
-  const [employeeEmails, setEmployeeEmails] = useState<string[]>([]);
-  const [isLoadingEmails, setIsLoadingEmails] = useState(false);
-  const durationTypes = mockDataService.getDurationTypes();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
+  const [holidayDates, setHolidayDates] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
+
+  const isAdminOrSuper = useRole([ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+  const isManager = useRole(ROLES.MANAGER);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      employeeEmail: "",
-      reasonForWorking: "",
-      fromDate: undefined,
-      toDate: undefined,
-      durationType: "",
+      userId: undefined,
+      workDate: undefined,
+      duration: undefined,
+      notes: "",
     },
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch employee emails from API
+  // Date matching function: Only allow non-working days and holidays, disable future dates
+  const disableInvalidDates = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Rule 3: Prevent selection of future dates
+    if (date > today) return true;
+
+    // Rule 1: Check if it's a non-working day (Sunday or 2nd/4th Saturday)
+    const isNonWorking = isNonWorkingDay(date);
+
+    // Rule 1: Check if it's a holiday (using pre-loaded data from state)
+    const dateKey = format(date, DATE_FORMATS.API);
+    const isHolidayDate = holidayDates.has(dateKey);
+
+    // Rule 2: Disable if it's neither a non-working day nor a holiday
+    // (i.e., disable regular working days)
+    return !isNonWorking && !isHolidayDate;
+  };
+
+  // Proactively load holiday data for the current and previous months
   useEffect(() => {
-    async function fetchEmployeeEmails() {
-      setIsLoadingEmails(true);
+    async function loadHolidays() {
       try {
-        // Replace with actual API endpoint when available
-        const response = await apiClient.get(
-          `${API_PATHS.EMPLOYEES}?managerId=${user!.id}`
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+
+        // Load current month holidays
+        const currentMonthData = await apiClient.get(
+          API_PATHS.MONTHLY_TIMESHEET,
+          {
+            params: { year: currentYear, month: currentMonth },
+          }
         );
 
-        if (response.data && Array.isArray(response.data.data)) {
-          const emails = response.data.data.map((emp: any) => emp.email);
-          setEmployeeEmails(emails);
-        }
-      } catch (error: any) {
-        console.error("Error fetching employee emails:", error);
+        // Also load previous month in case user needs to select dates from it
+        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+        const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
-        // Fallback to mock data if API fails
-        const mockUser = mockDataService.getCurrentUser();
-        setEmployeeEmails([mockUser.email]);
-      } finally {
-        setIsLoadingEmails(false);
+        const prevMonthData = await apiClient.get(API_PATHS.MONTHLY_TIMESHEET, {
+          params: { year: prevYear, month: prevMonth },
+        });
+
+        // Extract holiday dates from both months
+        const holidays = new Set<string>();
+
+        const processMonthData = (data: any) => {
+          const days = data?.days || data?.data?.days || [];
+          days.forEach((day: any) => {
+            if (day.isHoliday === true) {
+              holidays.add(day.date);
+            }
+          });
+        };
+
+        processMonthData(currentMonthData.data);
+        processMonthData(prevMonthData.data);
+
+        setHolidayDates(holidays);
+      } catch (error: any) {
+        console.error("Error loading holidays:", error);
+        // Silently fail - calendar will still work with non-working days
       }
     }
 
-    fetchEmployeeEmails();
+    loadHolidays();
   }, []);
+
+  // Fetch employees from API
+  useEffect(() => {
+    async function fetchEmployees() {
+      if (!user?.id) return;
+
+      setIsLoadingEmployees(true);
+      try {
+        const fetchAllPages = async (extraParams: Record<string, any> = {}) => {
+          let page = 1;
+          const accumulated: any[] = [];
+
+          while (true) {
+            const response = await apiClient.get(API_PATHS.EMPLOYEES, {
+              params: { ...extraParams, page },
+            });
+
+            const pageData = response.data?.data || [];
+            accumulated.push(...pageData);
+
+            const total = response.data?.total ?? response.data?.data?.total;
+            const limit = response.data?.limit ?? response.data?.data?.limit;
+
+            // If API doesn't provide pagination meta, break after first page
+            if (!total || !limit) break;
+
+            if (accumulated.length >= total) break;
+            page += 1;
+          }
+
+          return accumulated;
+        };
+        const trySingleRequest = async (extraParams: Record<string, any> = {}) => {
+          try {
+            const respAll = await apiClient.get(API_PATHS.EMPLOYEES, {
+              params: { ...extraParams, all: true },
+            });
+            if (respAll.data && Array.isArray(respAll.data.data)) {
+              const count = respAll.data.data.length;
+              const total = respAll.data.total ?? respAll.data.data?.total ?? count;
+              if (count >= total) return respAll.data.data;
+
+            }
+          } catch (e) {
+          }
+
+          try {
+            const resp = await apiClient.get(API_PATHS.EMPLOYEES, {
+              params: { ...extraParams, page: 1, limit: 10000 },
+            });
+
+            const list = resp.data?.data || [];
+            const total = resp.data?.total ?? resp.data?.data?.total ?? list.length;
+
+            if (list.length >= total) {
+              return list;
+            }
+          } catch (e) {
+          }
+
+        
+          return await fetchAllPages(extraParams);
+        };
+
+        if (isAdminOrSuper) {
+          const allUsers = await trySingleRequest();
+          const employeeList = (allUsers || [])
+            .filter((emp: any) => emp && emp.id) 
+            .map((emp: any) => ({
+              id: emp.id,
+              name: emp.name || emp.email || `User ${emp.id}`, 
+              email: emp.email || '',
+            }))
+            .filter((emp: Employee) => emp.name && !emp.name.includes('#'));
+          
+          employeeList.sort((a: Employee, b: Employee) => a.name.localeCompare(b.name));
+          setEmployees(employeeList);
+        } else if (isManager) {
+          const allUsers = await trySingleRequest({ managerId: user.id });
+          const employeeList = (allUsers || [])
+            .filter((emp: any) => emp && emp.id) 
+            .map((emp: any) => ({
+              id: emp.id,
+              name: emp.name || emp.email || `User ${emp.id}`, 
+              email: emp.email || '',
+            }))
+            .filter((emp: Employee) => emp.name && !emp.name.includes('#')); 
+          
+          employeeList.sort((a: Employee, b: Employee) => a.name.localeCompare(b.name));
+          setEmployees(employeeList);
+        } else {
+          // Regular employee: only themselves
+          const self = {
+            id: user.id,
+            name: user.name || user.email,
+            email: user.email,
+          };
+          setEmployees([self]);
+          // Preselect the current user and disable changing
+          form.setValue("userId", user.id);
+        }
+      } catch (error: any) {
+        console.error("Error fetching employees:", error);
+        toast.error("Failed to load employees", {
+          description: "Unable to fetch employee list. Please try again.",
+        });
+      } finally {
+        setIsLoadingEmployees(false);
+      }
+    }
+
+    fetchEmployees();
+  }, [user?.id, isAdminOrSuper, isManager]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
 
     try {
+      // Final validation: Ensure the date is a holiday or non-working day
+      const isNonWorking = isNonWorkingDay(values.workDate);
+      const dateKey = format(values.workDate, DATE_FORMATS.API);
+      const isHolidayDate = holidayDates.has(dateKey);
+
+      if (!isNonWorking && !isHolidayDate) {
+        toast.error("Invalid work date", {
+          description:
+            "Comp-Off requests can only be submitted for holidays or non-working days (weekends).",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
-        employeeEmail: values.employeeEmail,
-        reasonForWorking: values.reasonForWorking,
-        fromDate: format(values.fromDate, DATE_FORMATS.API),
-        toDate: format(values.toDate, DATE_FORMATS.API),
-        durationType: values.durationType,
+        userId: values.userId,
+        workDate: dateKey,
+        duration: values.duration,
+        notes: values.notes,
       };
 
-      // Replace with actual API endpoint when available
       const response = await apiClient.post(API_PATHS.COMPOFF_REQUEST, payload);
 
       if (response.status === 200 || response.status === 201) {
@@ -157,7 +338,8 @@ export function CompOffRequestForm() {
       <CardHeader>
         <CardTitle className="text-2xl mb-2">Comp-Off Request</CardTitle>
         <CardDescription className="text-muted-foreground">
-          Request compensatory time off for overtime work performed.
+          Request compensatory time off for overtime work performed on holidays
+          or non-working days.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -168,30 +350,34 @@ export function CompOffRequestForm() {
               <h3 className="text-lg font-semibold">Employee Information</h3>
               <FormField
                 control={form.control}
-                name="employeeEmail"
+                name="userId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Employee Email</FormLabel>
+                    <FormLabel>Employee</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isLoadingEmails}
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      value={field.value?.toString()}
+                      // Disable selection for regular employees (they can only request for themselves).
+                      disabled={isLoadingEmployees || (!isAdminOrSuper && !isManager)}
                     >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue
                             placeholder={
-                              isLoadingEmails
+                              isLoadingEmployees
                                 ? "Loading employees..."
-                                : "Select employee email"
+                                : "Select employee"
                             }
                           />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {employeeEmails.map((email) => (
-                          <SelectItem key={email} value={email}>
-                            {email}
+                        {employees.map((employee) => (
+                          <SelectItem
+                            key={employee.id}
+                            value={employee.id.toString()}
+                          >
+                            {employee.name} ({employee.email})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -212,10 +398,82 @@ export function CompOffRequestForm() {
 
               <FormField
                 control={form.control}
-                name="reasonForWorking"
+                name="workDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Work Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="noShadow"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? (
+                              format(field.value, DATE_FORMATS.DISPLAY)
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-auto p-0 border-0!"
+                        align="start"
+                      >
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={disableInvalidDates}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      Select a past or current holiday/non-working day when
+                      overtime work was performed
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Reason for Working</FormLabel>
+                    <FormLabel>Duration</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="full_day">Full Day</SelectItem>
+                        <SelectItem value="half_day">Half Day</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Specify whether this is a full day or half day comp-off
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Please provide details about the overtime work performed..."
@@ -225,123 +483,6 @@ export function CompOffRequestForm() {
                     </FormControl>
                     <FormDescription>
                       Explain why overtime work was required
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="fromDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>From Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="noShadow"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? (
-                                format(field.value, DATE_FORMATS.DISPLAY)
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormDescription>
-                        Select the start date for comp-off
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="toDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>To Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="noShadow"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? (
-                                format(field.value, DATE_FORMATS.DISPLAY)
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormDescription>
-                        Select the end date for comp-off
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="durationType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select duration type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {durationTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Specify whether this is a full day or half day comp-off
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
+import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -51,13 +51,24 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import apiClient from "@/lib/api-client";
-import { API_PATHS, DATE_FORMATS, VALIDATION } from "@/lib/constants";
+import {
+  API_PATHS,
+  DATE_FORMATS,
+  VALIDATION,
+  WORK_DAYS_NEEDED,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  checkTimesheetConflictWithLeave,
+  invalidateMonthlyTimesheetCache,
+  isNonWorkingDay,
+} from "@/lib/leave-timesheet-validator";
 
 export default function TrackerPage() {
+  const router = useRouter();
   // Get authenticated user data
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
 
   // Get mock data from centralized service
 
@@ -67,6 +78,10 @@ export default function TrackerPage() {
 
   const [projectsByDept, setProjectsByDept] = useState<
     Record<string, { id: number; name: string; code: string }[]>
+  >({});
+
+  const [projectSearchQuery, setProjectSearchQuery] = useState<
+    Record<number, string>
   >({});
 
   useEffect(() => {
@@ -95,6 +110,49 @@ export default function TrackerPage() {
     fetchDepartments();
   }, [isLoading, user?.orgId]);
 
+  const disableInvalidDates = (date: Date) => {
+    const now = new Date();
+    const cutoffHour = 7;
+    
+    let effectiveToday = new Date(now);
+    effectiveToday.setHours(0, 0, 0, 0);
+    
+    if (now.getHours() < cutoffHour) {
+      effectiveToday.setDate(effectiveToday.getDate() - 1);
+    }
+
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+
+    if (d.getTime() > effectiveToday.getTime()) return true;
+
+    const backfillRemaining = user?.backfill?.remaining ?? 0;
+    if (backfillRemaining === 0) {
+      return d.getTime() !== effectiveToday.getTime();
+    }
+
+    const workDaysNeeded = WORK_DAYS_NEEDED;
+    const cursor = new Date(effectiveToday);
+    cursor.setDate(cursor.getDate() - 1);
+
+    let found = 0;
+    while (found < workDaysNeeded) {
+      if (!isNonWorkingDay(cursor)) {
+        found++;
+      }
+      if (found < workDaysNeeded) {
+        cursor.setDate(cursor.getDate() - 1);
+      }
+    }
+
+    const earliestAllowed = new Date(cursor);
+    earliestAllowed.setHours(0, 0, 0, 0);
+
+    if (d.getTime() < earliestAllowed.getTime()) return true;
+
+    return false;
+  };
+
   const fetchProjectsForDepartment = async (deptCode: string) => {
     if (isLoading) return;
     const orgId = user?.orgId;
@@ -105,11 +163,31 @@ export default function TrackerPage() {
     if (!dept?.id) return;
 
     try {
-      const res = await apiClient.get(API_PATHS.PROJECTS, {
-        params: { orgId, departmentId: dept.id },
-      });
-      const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      setProjectsByDept((prev) => ({ ...prev, [deptCode]: list }));
+      let allProjects: { id: number; name: string; code: string }[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      // Fetch all pages
+      while (hasMore) {
+        const res = await apiClient.get(API_PATHS.PROJECTS, {
+          params: { orgId, departmentId: dept.id, page, limit: 100 },
+        });
+
+        const responseData = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || [];
+        const projects = Array.isArray(responseData)
+          ? responseData
+          : responseData.data || [];
+
+        allProjects = [...allProjects, ...projects];
+        const total = res.data?.total || projects.length;
+        const limit = res.data?.limit || 100;
+        hasMore = allProjects.length < total;
+        page++;
+      }
+
+      setProjectsByDept((prev) => ({ ...prev, [deptCode]: allProjects }));
     } catch (error: any) {
       console.error("Failed to load projects:", error);
       toast.error("Failed to load projects", {
@@ -120,7 +198,88 @@ export default function TrackerPage() {
   };
 
   const formSchema = z.object({
-    activityDate: z.date(),
+    activityDate: z
+      .date()
+      .refine(
+        (date) => {
+          const now = new Date();
+          const cutoffHour = 7;
+          
+          let effectiveToday = new Date(now);
+          effectiveToday.setHours(0, 0, 0, 0);
+            if (now.getHours() < cutoffHour) {
+            effectiveToday.setDate(effectiveToday.getDate() - 1);
+          }
+
+          // Check if date is in the future (relative to effective today)
+          const d = new Date(date);
+          d.setHours(0, 0, 0, 0);
+          if (d.getTime() > effectiveToday.getTime()) return false;
+
+          return true;
+        },
+        {
+          message: "Future dates are not allowed.",
+        }
+      )
+      .refine(
+        (date) => {
+          const now = new Date();
+          const cutoffHour = 7;
+          
+          let effectiveToday = new Date(now);
+          effectiveToday.setHours(0, 0, 0, 0);
+          
+          if (now.getHours() < cutoffHour) {
+            effectiveToday.setDate(effectiveToday.getDate() - 1);
+          }
+
+          const selectedDate = new Date(date);
+          selectedDate.setHours(0, 0, 0, 0);
+
+          // If backfill remaining is zero, only allow effective today
+          const backfillRemaining = user?.backfill?.remaining ?? 0;
+          if (backfillRemaining === 0) {
+            return selectedDate.getTime() === effectiveToday.getTime();
+          }
+
+          // Find past 3 working days (excluding today)
+          const workDaysNeeded = WORK_DAYS_NEEDED;
+          const cursor = new Date(effectiveToday);
+          cursor.setDate(cursor.getDate() - 1); 
+
+          let found = 0;
+          while (found < workDaysNeeded) {
+            if (!isNonWorkingDay(cursor)) {
+              found++;
+            }
+            if (found < workDaysNeeded) {
+              cursor.setDate(cursor.getDate() - 1);
+            }
+          }
+
+          const earliestAllowed = new Date(cursor);
+          earliestAllowed.setHours(0, 0, 0, 0);
+     
+          const d = new Date(date);
+          d.setHours(0, 0, 0, 0);
+          const dayBeforeToday = new Date(effectiveToday);
+          dayBeforeToday.setDate(dayBeforeToday.getDate() - 1);
+          const isEffectiveToday =
+            d.getTime() === effectiveToday.getTime();
+
+          if (isEffectiveToday) return true;
+          return (
+            d.getTime() >= earliestAllowed.getTime() &&
+            d.getTime() <= dayBeforeToday.getTime() &&
+            !isNonWorkingDay(d)
+          );
+        },
+        {
+          message:
+            "Activity can be added for the past 3 working days (excluding today and non-working days). You may have exhausted your backfill limit.",
+        }
+      ),
     projectEntries: z
       .array(
         z.object({
@@ -182,11 +341,32 @@ export default function TrackerPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
 
     try {
+      // Calculate total hours
+      const totalHours = values.projectEntries.reduce(
+        (sum, entry) => sum + entry.hoursSpent,
+        0
+      );
+
+      // Check for conflicts with existing leaves
+      const conflictResult = await checkTimesheetConflictWithLeave(
+        values.activityDate,
+        totalHours
+      );
+
+      if (conflictResult.hasConflict) {
+        toast.error("Conflict with leave application", {
+          description: conflictResult.message,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       // Transform form data to match API schema
       const payload = {
         workDate: format(values.activityDate, DATE_FORMATS.API),
@@ -225,8 +405,18 @@ export default function TrackerPage() {
           description: "Your activities have been recorded.",
         });
 
+        // Invalidate cache for the submitted month
+        const activityMonth = values.activityDate.getMonth() + 1;
+        const activityYear = values.activityDate.getFullYear();
+        invalidateMonthlyTimesheetCache(activityYear, activityMonth);
+
+        // Refresh user data to update backfill count
+        await refreshUser();
+
         // Reset form to default values
         form.reset();
+       // Redirect to dashboard
+        router.push('/');
       }
     } catch (error: any) {
       console.error("Error submitting activity tracker:", error);
@@ -245,8 +435,28 @@ export default function TrackerPage() {
   }
 
   function addProjectEntry() {
+    const lastIndex = fields.length - 1;
+    const lastEntry = form.getValues(`projectEntries.${lastIndex}`);
+    const isLastEntryComplete =
+      lastEntry.currentWorkingDepartment &&
+      lastEntry.projectId &&
+      lastEntry.hoursSpent > 0 &&
+      lastEntry.taskDescription.trim().length >=
+        VALIDATION.MIN_TASK_DESCRIPTION_LENGTH;
+
+    if (!isLastEntryComplete) {
+      toast.error("Incomplete Entry", {
+        description:
+          "Please complete the current project entry before adding a new one.",
+      });
+      return;
+    }
+
+    const inheritedDept = lastEntry.currentWorkingDepartment || "";
+    if (inheritedDept) fetchProjectsForDepartment(inheritedDept);
+
     append({
-      currentWorkingDepartment: "",
+      currentWorkingDepartment: inheritedDept,
       hoursSpent: 0,
       projectId: "",
       taskDescription: "",
@@ -254,19 +464,14 @@ export default function TrackerPage() {
   }
   return (
     <>
-      <AppHeader
-        crumbs={[
-          { label: "Dashboard", href: "/" },
-          { label: "Activity Tracker" },
-        ]}
-      />
+      <AppHeader crumbs={[{ label: "Activity Logger" }]} />
       <PageWrapper>
         <div className="flex w-full justify-center p-4">
           <Card className="mx-auto w-full min-w-[120px] max-w-[80vw] sm:max-w-xs md:max-w-lg lg:max-w-2xl xl:max-w-3xl">
             <CardHeader>
-              <CardTitle className="text-2xl mb-2">Activity Tracker</CardTitle>
+              <CardTitle className="text-2xl mb-2">Activity Logger</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Track your daily activities and manage your time effectively.
+                Log your daily activities and manage your time effectively.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -283,7 +488,10 @@ export default function TrackerPage() {
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Activity Date</FormLabel>
-                          <Popover>
+                          <Popover
+                            open={calendarOpen}
+                            onOpenChange={setCalendarOpen}
+                          >
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
@@ -309,14 +517,20 @@ export default function TrackerPage() {
                               <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
+                                onSelect={(date) => {
+                                  if (!date) return;
+                                  field.onChange(date);
+                                  setCalendarOpen(false);
+                                }}
+                                disabled={disableInvalidDates}
                                 initialFocus
                               />
                             </PopoverContent>
                           </Popover>
                           <FormDescription>
-                            Select the date for which you are tracking
-                            activities.
+                            {(user?.backfill?.remaining ?? 0) > 0
+                              ? "Select a date for today or within the last three days (depending on available lifelines for logging activities.)"
+                              : "Only today's date can be selected for tracking activities. Your backfill limit has been reached."}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -330,15 +544,6 @@ export default function TrackerPage() {
                       <h3 className="text-lg font-semibold">
                         Project Activities
                       </h3>
-                      <Button
-                        type="button"
-                        variant="noShadow"
-                        size="sm"
-                        onClick={addProjectEntry}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Project Entry
-                      </Button>
                     </div>
 
                     {fields.map((field, index) => (
@@ -378,6 +583,10 @@ export default function TrackerPage() {
                                       `projectEntries.${index}.projectId`,
                                       ""
                                     );
+                                    setProjectSearchQuery((prev) => ({
+                                      ...prev,
+                                      [index]: "",
+                                    }));
                                     fetchProjectsForDepartment(value);
                                   }}
                                   defaultValue={field.value}
@@ -412,12 +621,25 @@ export default function TrackerPage() {
                               );
                               const projectOptions =
                                 projectsByDept[selectedDeptCode] || [];
+
+                              const searchQuery =
+                                projectSearchQuery[index] || "";
+                              const filteredProjects = projectOptions.filter(
+                                (project) =>
+                                  project.name
+                                    .toLowerCase()
+                                    .includes(searchQuery.toLowerCase()) ||
+                                  project.code
+                                    .toLowerCase()
+                                    .includes(searchQuery.toLowerCase())
+                              );
+
                               return (
                                 <FormItem>
                                   <FormLabel>Project</FormLabel>
                                   <Select
                                     onValueChange={field.onChange}
-                                    defaultValue={field.value}
+                                    value={field.value}
                                   >
                                     <FormControl>
                                       <SelectTrigger>
@@ -425,14 +647,34 @@ export default function TrackerPage() {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      {projectOptions.map((project) => (
-                                        <SelectItem
-                                          key={project.id}
-                                          value={project.id.toString()}
-                                        >
-                                          {project.name}
-                                        </SelectItem>
-                                      ))}
+                                      <div className="px-2 pb-2">
+                                        <Input
+                                          placeholder="Search projects..."
+                                          value={searchQuery}
+                                          onChange={(e) => {
+                                            setProjectSearchQuery((prev) => ({
+                                              ...prev,
+                                              [index]: e.target.value,
+                                            }));
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="h-8"
+                                        />
+                                      </div>
+                                      {filteredProjects.length === 0 ? (
+                                        <div className="py-6 text-center text-sm text-muted-foreground">
+                                          No projects found
+                                        </div>
+                                      ) : (
+                                        filteredProjects.map((project) => (
+                                          <SelectItem
+                                            key={project.id}
+                                            value={project.id.toString()}
+                                          >
+                                            {project.name}
+                                          </SelectItem>
+                                        ))
+                                      )}
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
@@ -445,28 +687,84 @@ export default function TrackerPage() {
                         <FormField
                           control={form.control}
                           name={`projectEntries.${index}.hoursSpent`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Hours Spent</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step={VALIDATION.HOURS_INPUT_STEP}
-                                  min="0"
-                                  max={VALIDATION.MAX_HOURS_PER_ENTRY}
-                                  placeholder="0.0"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseFloat(e.target.value))
-                                  }
-                                />
-                              </FormControl>
-                              {/* <FormDescription>
-                                  Maximum 15 hours per entry
-                                </FormDescription> */}
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            const selectedDeptCode = form.watch(
+                              `projectEntries.${index}.currentWorkingDepartment`
+                            );
+                            const selectedProjId = form.watch(
+                              `projectEntries.${index}.projectId`
+                            );
+                            const projectOptionsLocal =
+                              projectsByDept[selectedDeptCode] || [];
+                            const selectedProject = projectOptionsLocal.find(
+                              (p) => p.id.toString() === selectedProjId
+                            );
+                            const isAdHoc =
+                              selectedProject?.name === "Ad-hoc tasks";
+                            const perProjectMax = isAdHoc
+                              ? 2
+                              : VALIDATION.MAX_HOURS_PER_ENTRY;
+                            return (
+                              <FormItem>
+                                <FormLabel>Hours Spent</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step={VALIDATION.HOURS_INPUT_STEP}
+                                    min="0"
+                                    max={perProjectMax}
+                                    placeholder="0.0"
+                                    {...field}
+                                    value={
+                                      field.value === undefined ||
+                                      field.value === null
+                                        ? ""
+                                        : typeof field.value === "number"
+                                        ? String(field.value)
+                                        : field.value
+                                    }
+                                    onChange={(e) => {
+                                      const raw = e.target.value;
+                                      const cleaned = raw.replace(
+                                        /[^\d.]/g,
+                                        ""
+                                      );
+                                      const parts = cleaned.split(".");
+                                      const intPart = parts[0].slice(0, 2);
+                                      const fracPart = parts[1]
+                                        ? parts[1].slice(0, 1)
+                                        : undefined;
+                                      const normalized =
+                                        fracPart !== undefined
+                                          ? `${intPart}.${fracPart}`
+                                          : intPart;
+                                      const num =
+                                        normalized === ""
+                                          ? 0
+                                          : parseFloat(normalized);
+                                      let valueNum = Number.isFinite(num)
+                                        ? num
+                                        : 0;
+                                      valueNum = Math.round(valueNum * 10) / 10;
+                                      // enforce per-project cap (2 hours for Ad-hoc)
+                                      if (isAdHoc && valueNum > 2) {
+                                        valueNum = 2;
+                                      }
+                                      if (
+                                        valueNum >
+                                        VALIDATION.MAX_HOURS_PER_ENTRY
+                                      ) {
+                                        valueNum =
+                                          VALIDATION.MAX_HOURS_PER_ENTRY;
+                                      }
+                                      field.onChange(valueNum);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
 
                         <FormField
@@ -503,13 +801,26 @@ export default function TrackerPage() {
                     </Alert>
                   )}
 
-                  <div className="flex justify-end pt-4">
-                    <Button type="submit" size="lg" disabled={isSubmitting}>
-                      {isSubmitting
-                        ? "Submitting..."
-                        : "Submit Activity Tracker"}
-                    </Button>
-                  </div>
+                  {/* <div className="flex flex-col gap-3 pb-4"> */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={addProjectEntry}
+                    className="self-start"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Another Project Activity
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={isSubmitting}
+                    className="w-full"
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Activity Logger"}
+                  </Button>
+                  {/* </div> */}
                 </form>
               </Form>
             </CardContent>

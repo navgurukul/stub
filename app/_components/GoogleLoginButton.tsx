@@ -2,10 +2,9 @@
 
 import { useEffect, useCallback, useRef } from "react";
 
-import { Loader2 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { useGoogleLogin } from "@/hooks/use-google-login";
+import { Spinner } from "@/components/ui/spinner";
 
 /**
  * Google Login Button Component
@@ -84,7 +83,7 @@ export function GoogleLoginButton() {
   if (isLoading) {
     return (
       <Button size="xl" disabled variant="neutral">
-        <Loader2 className="animate-spin" />
+        <Spinner className="size-5" />
         Signing in...
       </Button>
     );
@@ -102,7 +101,7 @@ export function GoogleLoginButton() {
       {/* Custom styled button matching app design system */}
       <Button
         size="xl"
-        className="cursor-pointer text-lg [&_svg]:size-5"
+        className="cursor-pointer text-lg [&_svg]:size-5 bg-white px-8 py-3"
         onClick={handleClick}
         variant="neutral"
         aria-label="Continue with Google"

@@ -1,5 +1,7 @@
 "use client";
 
+import { RoleProtectedRoute } from "@/app/_components/RoleProtectedRoute";
+import { ROLES } from "@/lib/rbac-constants";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import {
@@ -13,7 +15,7 @@ import { LayoutDashboard, Users, FolderKanban, Activity } from "lucide-react";
 
 export default function AdminDashboardPage() {
   return (
-    <>
+    <RoleProtectedRoute requiredRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]}>
       <AppHeader
         crumbs={[
           { label: "Dashboard", href: "/" },
@@ -150,6 +152,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </PageWrapper>
-    </>
+    </RoleProtectedRoute>
   );
 }
