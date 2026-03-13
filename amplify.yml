@@ -7,15 +7,15 @@ frontend:
         - pnpm install
     build:
       commands:
-        - echo "=== Debug: Available env vars ==="
-        - env | grep -E "NEXT_PUBLIC_|BACKEND_" || echo "No matching env vars found"
-        - echo "=== End debug ==="
-        - env | grep -E "NEXT_PUBLIC_|BACKEND_" >> .env.production || true
+        - 'echo "=== Debug: Available env vars ==="'
+        - 'env | grep -E "NEXT_PUBLIC_|BACKEND_" || echo "No matching env vars found"'
+        - 'echo "=== End debug ==="'
+        - 'env | grep -E "NEXT_PUBLIC_|BACKEND_" >> .env.production || true'
         - pnpm run build
   artifacts:
     baseDirectory: .next
     files:
-      - '**/*'
+      - "**/*"
   cache:
     paths:
       - node_modules/**/*
