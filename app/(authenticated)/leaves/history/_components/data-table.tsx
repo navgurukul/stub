@@ -229,7 +229,7 @@ export function DataTable<TData, TValue>({
       </div> */}
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="font-heading">
+          <TableHeader className="font-heading bg-secondary-background">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 className="bg-secondary-background text-foreground"
@@ -237,7 +237,7 @@ export function DataTable<TData, TValue>({
               >
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead className="text-foreground" key={header.id}>
+                    <TableHead className="text-muted-foreground" key={header.id}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(

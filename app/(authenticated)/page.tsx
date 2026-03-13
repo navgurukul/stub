@@ -6,14 +6,15 @@ import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
-  Download,
   LayoutGrid,
   List,
   Briefcase,
   Calendar,
   Clock,
   AlertCircle,
+  TreePalm,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
@@ -489,174 +490,187 @@ export default function DashboardPage() {
     <>
       <AppHeader crumbs={[{ label: "Dashboard" }]} />
       <PageWrapper>
-        <div className="flex w-full justify-center p-4">
-          <div className="w-full max-w-7xl space-y-6">
-            {/* Header for Statistics - Data cycle info */}
-            <div className="mb-3">
-              <p className="text-sm text-muted-foreground">
-                Data shown is according to cycle: 26th to 25th of the month
-              </p>
-            </div>
+        <div className="p-4 md:p-6 space-y-5">
+          {/* Cycle chip */}
+          <div>
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary-background border border-border px-3 py-1.5 rounded-full">
+              <Clock className="h-3 w-3 flex-shrink-0" />
+              Billing cycle: 26th to 25th of the month
+            </span>
+          </div>
 
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <Card className="border border-border">
-                <CardContent className="py-2.5 px-4">
-                  <div className="space-y-0">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Total Hours Logged
-                    </p>
-                    <p className="text-xl font-bold text-foreground">
-                      {monthlyData?.totals.timesheetHours || 0}
-                    </p>
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              {
+                label: "Hours Logged",
+                display: String(monthlyData?.totals.timesheetHours || 0),
+                unit: "hrs",
+                sub: "this cycle",
+                icon: Clock,
+                accent: "border-l-[#74808e]",
+                iconBg: "bg-[#e5edf5]",
+                iconColor: "text-[#74808e]",
+              },
+              {
+                label: "Leave Days",
+                display: String(leaveDaysDisplay),
+                unit: "days",
+                sub: "this cycle",
+                icon: TreePalm,
+                accent: "border-l-amber-400",
+                iconBg: "bg-amber-50",
+                iconColor: "text-amber-600",
+              },
+              {
+                label: "Lifelines",
+                display: String(user?.backfill?.remaining ?? 0),
+                unit: "",
+                sub: `of ${user?.backfill?.limit ?? 0} available`,
+                icon: AlertCircle,
+                accent: (user?.backfill?.remaining ?? 0) > 0 ? "border-l-emerald-400" : "border-l-amber-400",
+                iconBg: (user?.backfill?.remaining ?? 0) > 0 ? "bg-emerald-50" : "bg-amber-50",
+                iconColor: (user?.backfill?.remaining ?? 0) > 0 ? "text-emerald-600" : "text-amber-600",
+              },
+              {
+                label: "Payable Days",
+                display: `${payableDays}/${totalCycleDays}`,
+                unit: "",
+                sub: "this cycle",
+                icon: Briefcase,
+                accent: "border-l-[#8a6f5e]",
+                iconBg: "bg-[#f0ebe3]",
+                iconColor: "text-[#8a6f5e]",
+              },
+            ].map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.label}
+                  className={cn(
+                    "bg-background border border-border border-l-4 rounded-lg p-4 transition-shadow hover:shadow-sm",
+                    card.accent
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight">
+                      {card.label}
+                    </span>
+                    <span className={cn("p-1.5 rounded-md flex-shrink-0", card.iconBg)}>
+                      <Icon className={cn("h-3.5 w-3.5", card.iconColor)} />
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="border border-border">
-                <CardContent className="py-2.5 px-4">
-                  <div className="space-y-0">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Leave Days
+                  {isLoading ? (
+                    <div className="h-8 w-16 bg-secondary-background rounded animate-pulse" />
+                  ) : (
+                    <p className="text-2xl font-bold text-foreground tabular-nums leading-none">
+                      {card.display}
+                      {card.unit && (
+                        <span className="text-sm font-normal text-muted-foreground ml-1">{card.unit}</span>
+                      )}
                     </p>
-                    <p className="text-xl font-bold text-foreground">
-                      {leaveDaysDisplay}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border border-border">
-                <CardContent className="py-2.5 px-4">
-                  <div className="space-y-0">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Lifelines Remaining
-                    </p>
-                    <p className="text-xl font-bold text-foreground">
-                      {user?.backfill?.remaining ?? 0}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      out of {user?.backfill?.limit ?? 0} available
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border border-border">
-                <CardContent className="py-2.5 px-4">
-                  <div className="space-y-0">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Total Payable Days
-                    </p>
-                    <p className="text-xl font-bold text-foreground">
-                      {payableDays}/{totalCycleDays}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">{card.sub}</p>
+                </div>
+              );
+            })}
+          </div>
 
-            {/* Timesheet Table View */}
-            <Card className="border border-border shadow-sm">
-              <CardContent className="p-4 sm:p-6">
-                {/* Header Section */}
-                <div className="mb-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                    <div className="space-y-0.5">
-                      <h2 className="text-xl font-semibold text-foreground">
-                        Timesheet
-                      </h2>
-                      <p className="text-sm text-muted-foreground break-all">
-                        {user?.email || "user@example.com"}
-                      </p>
+          {/* Timesheet */}
+          <div className="rounded-lg border border-border bg-background overflow-hidden">
+            {/* Timesheet header */}
+            <div className="px-5 py-4 border-b border-border bg-secondary-background">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Timesheet</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                    {user?.email || "user@example.com"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  {/* View toggle */}
+                  <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5">
+                    <button
+                      onClick={() => {
+                        setViewMode("table");
+                        localStorage.setItem("timesheet-view-mode", "table");
+                      }}
+                      title="List view"
+                      className={cn(
+                        "h-7 w-7 rounded-md flex items-center justify-center transition-all cursor-pointer",
+                        viewMode === "table"
+                          ? "bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <List className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewMode("grid");
+                        localStorage.setItem("timesheet-view-mode", "grid");
+                      }}
+                      title="Grid view"
+                      className={cn(
+                        "h-7 w-7 rounded-md flex items-center justify-center transition-all cursor-pointer",
+                        viewMode === "grid"
+                          ? "bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {/* Period navigation */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handlePreviousMonth}
+                      disabled={isLoading}
+                      className="h-7 w-7 rounded-md border border-border bg-background flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary-background transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="h-4 w-4 text-foreground" />
+                    </button>
+                    <div className="px-3 py-1 rounded-md border border-border bg-background text-xs text-foreground whitespace-nowrap tabular-nums min-w-[160px] text-center">
+                      {monthlyData?.period ? (
+                        <>
+                          {format(parseISO(monthlyData.period.start), "dd/MM/yyyy")}
+                          {" — "}
+                          {format(parseISO(monthlyData.period.end), "dd/MM/yyyy")}
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
-                      {/* View toggle */}
-                      <div className="flex items-center border border-border rounded-[4px] overflow-hidden">
-                        <button
-                          onClick={() => {
-                            setViewMode("table");
-                            localStorage.setItem(
-                              "timesheet-view-mode",
-                              "table"
-                            );
-                          }}
-                          title="Table view"
-                          className={`h-7 w-7 flex items-center justify-center transition-colors cursor-pointer ${
-                            viewMode === "table"
-                              ? "bg-foreground text-background"
-                              : "bg-transparent hover:bg-secondary-background text-foreground"
-                          }`}
-                        >
-                          <List className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setViewMode("grid");
-                            localStorage.setItem("timesheet-view-mode", "grid");
-                          }}
-                          title="Grid view"
-                          className={`h-7 w-7 flex items-center justify-center transition-colors cursor-pointer ${
-                            viewMode === "grid"
-                              ? "bg-foreground text-background"
-                              : "bg-transparent hover:bg-secondary-background text-foreground"
-                          }`}
-                        >
-                          <LayoutGrid className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <button
-                        onClick={handlePreviousMonth}
-                        disabled={isLoading}
-                        className="h-7 w-7 bg-transparent hover:bg-secondary-background border border-border rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="h-4 w-4 text-foreground" />
-                      </button>
-                      <div className="text-center px-3 py-1.5 rounded-[4px] border border-border bg-background">
-                        {monthlyData?.period && (
-                          <p className="text-xs text-muted-foreground whitespace-nowrap">
-                            {format(
-                              parseISO(monthlyData.period.start),
-                              "dd/MM/yyyy"
-                            )}{" "}
-                            -{" "}
-                            {format(
-                              parseISO(monthlyData.period.end),
-                              "dd/MM/yyyy"
-                            )}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleNextMonth}
-                        disabled={isLoading}
-                        className="h-7 w-7 bg-transparent hover:bg-secondary-background border border-border rounded-[4px] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                      >
-                        <ChevronRight className="h-4 w-4 text-foreground" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleNextMonth}
+                      disabled={isLoading}
+                      className="h-7 w-7 rounded-md border border-border bg-background flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary-background transition-colors cursor-pointer"
+                    >
+                      <ChevronRight className="h-4 w-4 text-foreground" />
+                    </button>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* Table Section */}
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-16 bg-background rounded-[4px]">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-border border-t-foreground"></div>
-                  </div>
-                ) : error ? (
-                  <div className="text-center py-16 bg-background rounded-[4px]">
-                    <p className="text-accent mb-4 text-sm">{error}</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentMonth(new Date(currentMonth))}
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                ) : timesheetRows.length === 0 && viewMode === "table" ? (
-                  <div className="text-center py-16 bg-background rounded-[4px] border border-border">
-                    <p className="text-muted-foreground text-sm">
-                      No records found for this month
-                    </p>
-                  </div>
-                ) : viewMode === "grid" ? (
+            {/* Timesheet content */}
+            <div className="p-4 sm:p-5">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-border border-t-foreground" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-16">
+                  <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date(currentMonth))}>
+                    Retry
+                  </Button>
+                </div>
+              ) : timesheetRows.length === 0 && viewMode === "table" ? (
+                <div className="text-center py-16">
+                  <p className="text-sm text-muted-foreground">No records found for this period</p>
+                </div>
+              ) : viewMode === "grid" ? (
                   /* Calendar Week View — organized by weeks with day cards */
                   (() => {
                     const sortedGridDays = [...(monthlyData?.days ?? [])].sort(
@@ -836,7 +850,7 @@ export default function DashboardPage() {
                                   // Determine cell background
                                   let cellBg = "var(--background)";
                                   if (dayData.isOff)
-                                    cellBg = "var(--color-green-bg)";
+                                    cellBg = "var(--secondary-background)";
                                   else if (dayData.isUnfilled)
                                     cellBg = "var(--secondary-background)";
                                   else if (dayData.status === "rejected")
@@ -1098,7 +1112,7 @@ export default function DashboardPage() {
                               row.isWeekend ||
                               (row.isLeave && row.leaveStatus === "approved")
                             ) {
-                              bgColor = "var(--color-green-bg)";
+                              bgColor = "var(--secondary-background)";
                               isColored = true;
                             } else {
                               bgColor = "var(--background)";
@@ -1241,8 +1255,7 @@ export default function DashboardPage() {
                     </div>
                   </>
                 )}
-              </CardContent>
-            </Card>
+            </div>
           </div>
         </div>
 
