@@ -45,14 +45,13 @@ import {
   TrackerForm,
   ProjectEntriesSection,
 } from "./_components";
+import { MonthlyTimesheetResponse } from "@/lib/dashboard-type";
 
 export default function TrackerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Get authenticated user data
   const { user, isLoading, refreshUser } = useAuth();
-
-  // Get mock data from centralized service
 
   const [departments, setDepartments] = useState<
     { id: number; name: string; code: string; description?: string | null }[]
@@ -65,6 +64,79 @@ export default function TrackerPage() {
   const [projectSearchQuery, setProjectSearchQuery] = useState<
     Record<number, string>
   >({});
+
+  const [monthlyTimesheets, setMonthlyTimesheets] = useState<MonthlyTimesheetResponse[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [refreshMonthlyTick, setRefreshMonthlyTick] = useState(0);
+  useEffect(() => {
+    if (isLoading || !user) return;
+
+    const fetchMonthlyData = async () => {
+      setIsDataLoading(true);
+      try {
+        const istToday = getISTBusinessDate();
+        const cycleStart = getCurrentSalaryCycleStart();
+        const monthsToFetch = [
+          { year: istToday.getFullYear(), month: istToday.getMonth() + 1 },
+        ];
+
+        if (cycleStart.getMonth() !== istToday.getMonth() || cycleStart.getFullYear() !== istToday.getFullYear()) {
+          monthsToFetch.push({ year: cycleStart.getFullYear(), month: cycleStart.getMonth() + 1 });
+        }
+
+        const responses = await Promise.all(
+          monthsToFetch.map(({ year, month }) =>
+            apiClient.get<MonthlyTimesheetResponse>(API_PATHS.MONTHLY_TIMESHEET, {
+              params: { year, month },
+            })
+          )
+        );
+
+        setMonthlyTimesheets(responses.map(r => r.data));
+      } catch (error) {
+        console.error("Failed to load monthly timesheets:", error);
+      } finally {
+        setIsDataLoading(false);
+      }
+    };
+
+    fetchMonthlyData();
+  }, [isLoading, user, refreshMonthlyTick]);
+
+  const getDayData = (date: Date) => {
+    const dateStr = format(date, DATE_FORMATS.API);
+    for (const sheet of monthlyTimesheets) {
+      const day = sheet.days.find((d) => d.date === dateStr);
+      if (day) return day;
+    }
+    return null;
+  };
+
+  const getExistingHoursForDate = (date: Date) => {
+    const dayData = getDayData(date);
+    if (!dayData) return 0;
+    const entryTotal =
+      dayData.timesheet?.entries?.reduce((sum, e) => sum + e.hours, 0) ?? 0;
+    return Math.max(dayData.timesheet?.totalHours ?? 0, entryTotal);
+  };
+
+  const isDateUnlocked = (date: Date) => {
+    const day = getDayData(date);
+    const ts = day?.timesheet;
+    if (
+      ts &&
+      ts.totalHours > 0 &&
+      ts.totalHours < VALIDATION.MAX_TOTAL_HOURS_PER_DAY &&
+      ts.createdAt
+    ) {
+      const creationBusinessDate = getISTBusinessDate(new Date(ts.createdAt));
+      const workDate = new Date(date);
+      workDate.setHours(0, 0, 0, 0);
+
+      return creationBusinessDate.getTime() > workDate.getTime();
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (isLoading) return;
@@ -103,10 +175,7 @@ export default function TrackerPage() {
     if (d.getTime() > istToday.getTime()) return true;
     if (d.getTime() < currentCycleStart.getTime()) return true;
 
-    const backfillRemaining = user?.backfill?.remaining ?? 0;
-    if (backfillRemaining === 0) {
-      return d.getTime() !== istToday.getTime();
-    }
+    if (getExistingHoursForDate(d) >= VALIDATION.MAX_TOTAL_HOURS_PER_DAY) return true;
 
     const workDaysNeeded = WORK_DAYS_NEEDED;
     const cursor = new Date(istToday);
@@ -125,7 +194,15 @@ export default function TrackerPage() {
     const earliestAllowed = new Date(cursor);
     earliestAllowed.setHours(0, 0, 0, 0);
 
-    if (d.getTime() < earliestAllowed.getTime()) return true;
+    const isWithinBackfillRange = d.getTime() >= earliestAllowed.getTime();
+    if (!isWithinBackfillRange) return true;
+
+    const backfillRemaining = user?.backfill?.remaining ?? 0;
+    if (backfillRemaining === 0) {
+      // If no lifelines, only allow today or already unlocked dates within range
+      const isISTToday = d.getTime() === istToday.getTime();
+      return !isISTToday && !isDateUnlocked(d);
+    }
 
     return false;
   };
@@ -200,11 +277,7 @@ export default function TrackerPage() {
           selectedDate.setHours(0, 0, 0, 0);
           const currentCycleStart = getCurrentSalaryCycleStart();
 
-          // If backfill remaining is zero, only allow IST business date
-          const backfillRemaining = user?.backfill?.remaining ?? 0;
-          if (backfillRemaining === 0) {
-            return selectedDate.getTime() === istToday.getTime();
-          }
+          if (getExistingHoursForDate(selectedDate) >= VALIDATION.MAX_TOTAL_HOURS_PER_DAY) return false;
 
           // Find past 3 working days (excluding today)
           const workDaysNeeded = WORK_DAYS_NEEDED;
@@ -223,21 +296,21 @@ export default function TrackerPage() {
 
           const earliestAllowed = new Date(cursor);
           earliestAllowed.setHours(0, 0, 0, 0);
-          const minimumAllowed = new Date(
-            Math.max(earliestAllowed.getTime(), currentCycleStart.getTime())
-          );
 
           const d = new Date(date);
           d.setHours(0, 0, 0, 0);
-          const dayBeforeToday = new Date(istToday);
-          dayBeforeToday.setDate(dayBeforeToday.getDate() - 1);
-          const isISTToday = d.getTime() === istToday.getTime();
 
+          const isISTToday = d.getTime() === istToday.getTime();
           if (isISTToday) return true;
-          return (
-            d.getTime() >= minimumAllowed.getTime() &&
-            d.getTime() <= dayBeforeToday.getTime()
-          );
+
+          const isWithinBackfillRange = d.getTime() >= earliestAllowed.getTime() && d.getTime() >= currentCycleStart.getTime();
+          if (!isWithinBackfillRange) return false;
+          const backfillRemaining = user?.backfill?.remaining ?? 0;
+          if (backfillRemaining === 0) {
+            return isDateUnlocked(d);
+          }
+
+          return true;
         },
         {
           message: TRACKER_BACKFILL_VALIDATION_MESSAGE,
@@ -389,6 +462,7 @@ export default function TrackerPage() {
 
         // Refresh user data to update backfill count
         await refreshUser();
+        setRefreshMonthlyTick(prev => prev + 1);
 
         // Reset form to default values
         form.reset({
@@ -422,34 +496,6 @@ export default function TrackerPage() {
     }
   }
 
-  function addProjectEntry() {
-    const lastIndex = fields.length - 1;
-    const lastEntry = form.getValues(`projectEntries.${lastIndex}`);
-    const isLastEntryComplete =
-      lastEntry.currentWorkingDepartment &&
-      lastEntry.projectId &&
-      lastEntry.hoursSpent > 0 &&
-      lastEntry.taskDescription.trim().length >=
-        VALIDATION.MIN_TASK_DESCRIPTION_LENGTH;
-
-    if (!isLastEntryComplete) {
-      toast.error("Incomplete Entry", {
-        description:
-          "Please complete the current project entry before adding a new one.",
-      });
-      return;
-    }
-
-    const inheritedDept = lastEntry.currentWorkingDepartment || "";
-    if (inheritedDept) fetchProjectsForDepartment(inheritedDept);
-
-    append({
-      currentWorkingDepartment: inheritedDept,
-      hoursSpent: 0,
-      projectId: "",
-      taskDescription: "",
-    });
-  }
 
   function sanitizeHoursDisplay(raw: string, perProjectMax: number, isAdHoc: boolean) {
     const clean = (raw ?? "").replace(/[^\d.]/g, "");
@@ -522,7 +568,7 @@ export default function TrackerPage() {
       lastEntry.projectId &&
       lastEntry.hoursSpent > 0 &&
       lastEntry.taskDescription.trim().length >=
-        VALIDATION.MIN_TASK_DESCRIPTION_LENGTH;
+      VALIDATION.MIN_TASK_DESCRIPTION_LENGTH;
 
     if (!isLastEntryComplete) {
       toast.error("Incomplete Entry", {

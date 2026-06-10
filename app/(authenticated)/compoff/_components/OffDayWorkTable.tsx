@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { startOfDay } from "date-fns";
+import { isValid, parse, startOfDay } from "date-fns";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,12 @@ import type {
 import { cn } from "@/lib/utils";
 
 const todayStart = startOfDay(new Date()).getTime();
+const june1stStart = startOfDay(new Date(2026, 5, 1)).getTime();
+const getWorkDateStart = (workDate: string, workDateTs: number | null) => {
+  if (workDateTs !== null) return workDateTs;
+  const parsed = parse(workDate, "dd MMM yyyy", new Date());
+  return isValid(parsed) ? startOfDay(parsed).getTime() : null;
+};
 
 const statusMeta: Record<CreditState, CreditStatusMeta> = {
   pending: { label: "Pending", className: "dashboard-status-pill dashboard-status-pill--yellow" },
@@ -53,7 +59,9 @@ export function OffDayWorkTable({
     return [...rows]
       .filter((row) => {
         const matchesStatus = statusFilter === "all" || row.state === statusFilter;
-        if (!query) return matchesStatus;
+        const workDateStart = getWorkDateStart(row.workDate, row.workDateTs);
+        const isAfterJune1st = workDateStart !== null && workDateStart >= june1stStart;
+        if (!query) return matchesStatus && isAfterJune1st;
 
         const haystack = [
           row.employeeName,
@@ -71,11 +79,11 @@ export function OffDayWorkTable({
           .join(" ")
           .toLowerCase();
 
-        return matchesStatus && haystack.includes(query);
+        return matchesStatus && isAfterJune1st && haystack.includes(query);
       })
       .sort((a, b) => {
-        const aTs = a.workDateTs ?? 0;
-        const bTs = b.workDateTs ?? 0;
+        const aTs = getWorkDateStart(a.workDate, a.workDateTs) ?? 0;
+        const bTs = getWorkDateStart(b.workDate, b.workDateTs) ?? 0;
         return bTs - aTs;
       });
   }, [rows, searchValue, statusFilter]);

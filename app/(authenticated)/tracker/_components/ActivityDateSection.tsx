@@ -73,7 +73,7 @@ export function ActivityDateSection({
             <FormDescription>
               {remaining > 0
                 ? "You can submit an entry for today, or for any of the past 3 working days within the current salary cycle, if you have lifelines remaining."
-                : "Only today's date can be selected for tracking activities. Your backfill limit has been reached."}
+                : "Only today's date and already unlocked backfill dates can be selected. Your backfill limit for new dates has been reached."}
             </FormDescription>
             <FormMessage />
           </FormItem>
