@@ -29,6 +29,7 @@ import { DATE_FORMATS, API_PATHS, VALIDATION } from "@/lib/constants";
 import apiClient from "@/lib/api-client";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { extractErrorMessage } from "@/lib/utils";
 
 export type LeaveRequest = {
   id: number;
@@ -185,7 +186,7 @@ function ActionsCell({
     } catch (error) {
       console.error("Error approving leave request:", error);
       toast.error("Failed to approve leave request", {
-        description: "Unable to approve the leave request. Please try again.",
+        description: extractErrorMessage(error, "Unable to approve the leave request. Please try again."),
       });
       return false;
     } finally {
@@ -206,7 +207,7 @@ function ActionsCell({
     } catch (error) {
       console.error("Error rejecting leave request:", error);
       toast.error("Failed to reject leave request", {
-        description: "Unable to reject the leave request. Please try again.",
+        description: extractErrorMessage(error, "Unable to reject the leave request. Please try again."),
       });
     } finally {
       setIsRejecting(false);
@@ -285,8 +286,7 @@ function ActionsCell({
     } catch (error) {
       console.error("Error updating leave request:", error);
       toast.error("Failed to update leave request", {
-        description:
-          "Unable to update this leave request. If this date is a weekend or holiday, please select a valid working day and try again.",
+        description: extractErrorMessage(error, "Unable to update this leave request. If this date is a weekend or holiday, please select a valid working day and try again."),
       });
     } finally {
       setIsSavingEdit(false);
@@ -313,8 +313,7 @@ function ActionsCell({
     } catch (error) {
       console.error("Error deleting leave request:", error);
       toast.error("Failed to delete leave request", {
-        description:
-          "Unable to delete the approved leave request. Please try again.",
+        description: extractErrorMessage(error, "Unable to delete the approved leave request. Please try again."),
       });
     } finally {
       setIsDeleting(false);

@@ -395,10 +395,8 @@ export function OffDayWorkDashboard() {
   );
 
   useEffect(() => {
-    if (!loadedByTab[activeTab]) {
-      void fetchTabRows(activeTab);
-    }
-  }, [activeTab, fetchTabRows, loadedByTab]);
+    void fetchTabRows(activeTab);
+  }, [activeTab, fetchTabRows]);
 
   useEffect(() => {
     if (activeTab === "my-off-day-work") {
@@ -456,7 +454,7 @@ export function OffDayWorkDashboard() {
                 onSearchValueChange={setMySearch}
                 statusFilter={myStatus}
                 onStatusFilterChange={setMyStatus}
-                searchPlaceholder="Search by holiday type or date..."
+                searchPlaceholder="Search by holiday  or date..."
                 loading={loadingByTab["my-off-day-work"]}
                 error={errorByTab["my-off-day-work"]}
               />
@@ -471,7 +469,7 @@ export function OffDayWorkDashboard() {
                   onSearchValueChange={setTeamSearch}
                   statusFilter={teamStatus}
                   onStatusFilterChange={setTeamStatus}
-                  searchPlaceholder="Search employee, holiday type..."
+                  searchPlaceholder="Search employee, holiday..."
                   loading={loadingByTab["my-reportees"]}
                   error={errorByTab["my-reportees"]}
                 />
@@ -487,7 +485,7 @@ export function OffDayWorkDashboard() {
                   onSearchValueChange={setAllSearch}
                   statusFilter={allStatus}
                   onStatusFilterChange={setAllStatus}
-                  searchPlaceholder="Search employee, holiday type..."
+                  searchPlaceholder="Search employee, holiday ..."
                   loading={loadingByTab["all-org"]}
                   error={errorByTab["all-org"]}
                 />

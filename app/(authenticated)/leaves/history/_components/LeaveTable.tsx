@@ -24,6 +24,7 @@ import { Spinner } from "@/components/ui/spinner";
 import apiClient from "@/lib/api-client";
 import { DATE_FORMATS, API_PATHS } from "@/lib/constants";
 import { toast } from "sonner";
+import { extractErrorMessage } from "@/lib/utils";
 import { LoadingState } from "./LoadingState";
 
 interface LeaveRequest {
@@ -97,7 +98,7 @@ export function LeaveTable({
     } catch (error) {
       console.error("Error deleting leave request:", error);
       toast.error("Failed to delete leave request", {
-        description: "Unable to delete the approved leave request. Please try again.",
+        description: extractErrorMessage(error, "Unable to delete the approved leave request. Please try again."),
       });
     } finally {
       setDeletingId(null);

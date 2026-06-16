@@ -92,7 +92,7 @@ export default function LeaveHistoryPage() {
       setLeaveHistory,
       setIsLoading
     );
-  }, [fetchLeaveData]);
+  }, [fetchLeaveData, mainTab]);
 
   // Fetch team leave requests from API
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function LeaveHistoryPage() {
       setTeamLeaveHistory,
       setIsTeamLoading
     );
-  }, [fetchLeaveData]);
+  }, [fetchLeaveData, mainTab]);
 
   // Refetch team leave requests after approval/rejection
   const refetchTeamLeaveRequests = useCallback(() => {

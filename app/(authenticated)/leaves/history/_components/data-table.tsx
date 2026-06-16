@@ -42,6 +42,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import apiClient from "@/lib/api-client";
 import { API_PATHS } from "@/lib/constants";
+import { extractErrorMessage } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -135,8 +136,7 @@ export function DataTable<TData, TValue>({
     } catch (error) {
       console.error("Error bulk approving leave requests:", error);
       toast.error("Failed to approve leave requests", {
-        description:
-          "Unable to approve the selected requests. Please try again.",
+        description: extractErrorMessage(error, "Unable to approve the selected requests. Please try again."),
       });
       return false;
     } finally {
@@ -176,8 +176,7 @@ export function DataTable<TData, TValue>({
     } catch (error) {
       console.error("Error bulk rejecting leave requests:", error);
       toast.error("Failed to reject leave requests", {
-        description:
-          "Unable to reject the selected requests. Please try again.",
+        description: extractErrorMessage(error, "Unable to reject the selected requests. Please try again."),
       });
     } finally {
       setIsBulkRejecting(false);

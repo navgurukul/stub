@@ -102,7 +102,7 @@ export default function LeaveApplicationPage() {
     if (authLoading) return;
 
     fetchLeaveBalances();
-  }, [authLoading]);
+  }, [authLoading, activeTab]);
 
   return (
     <>

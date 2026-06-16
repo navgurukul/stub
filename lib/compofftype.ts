@@ -1,3 +1,5 @@
+import { extractErrorMessage, ApiErrorLike } from "./utils";
+
 // Shared types for Comp-Off features and components
 
 export type CompOffScope = "my" | "reportees" | "all";
@@ -24,14 +26,7 @@ export interface CompOffRequestPayload {
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
 
-export interface ApiErrorLike {
-  message?: string;
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
-}
+export type { ApiErrorLike };
 
 export interface TimesheetDayRecord {
   isHoliday?: boolean;
@@ -162,7 +157,4 @@ export const toEmployeeRecords = (value: unknown): EmployeeApiRecord[] => {
     .map((item) => item as EmployeeApiRecord);
 };
 
-export const extractErrorMessage = (error: unknown, fallback: string): string => {
-  const typedError = error as ApiErrorLike;
-  return typedError.response?.data?.message || typedError.message || fallback;
-};
+export { extractErrorMessage };

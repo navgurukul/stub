@@ -1025,7 +1025,7 @@ export default function DashboardPage() {
     };
 
     fetchMonthlyData();
-  }, [currentMonth, employeeCurrentMonth, authLoading, isTeamMode, teamUser, refreshTick, user?.id]);
+  }, [currentMonth, employeeCurrentMonth, authLoading, isTeamMode, teamUser, refreshTick, user?.id, teamVisibilityScope]);
   useEffect(() => {
     if (authLoading || !user?.orgId || !canAccessTeamDashboard) return;
 
@@ -1173,7 +1173,7 @@ export default function DashboardPage() {
           rows.push({
             sno: sno++,
             project: `${leaveName} (${leaveStatusLabel})`,
-            activities: (entry as any).reason?.trim() || `Leave (${leaveStatusLabel})`,
+            activities: "-",
             date: format(parsedDate, "dd/MM/yyyy"),
             dateApi: format(parsedDate, DATE_FORMATS.API),
             day: dayOfWeek,

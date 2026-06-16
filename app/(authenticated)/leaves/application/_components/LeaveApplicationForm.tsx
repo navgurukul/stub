@@ -39,7 +39,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils";
+import { cn, extractErrorMessage } from "@/lib/utils";
 import apiClient from "@/lib/api-client";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -358,17 +358,7 @@ export function LeaveApplicationForm({
     } catch (error) {
       console.error("Error submitting leave application:", error);
 
-      const errorMessage =
-        typeof error === "object" &&
-          error !== null &&
-          "response" in error &&
-          (error as { response?: { data?: { message?: string } } }).response?.data
-            ?.message
-          ? (error as { response?: { data?: { message?: string } } }).response
-            ?.data?.message
-          : error instanceof Error
-            ? error.message
-            : "Failed to submit leave application. Please try again.";
+      const errorMessage = extractErrorMessage(error, "Failed to submit leave application. Please try again.");
 
       toast.error("Submission failed", {
         description: errorMessage,

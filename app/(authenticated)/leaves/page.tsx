@@ -580,10 +580,13 @@ export default function LeavesPage() {
   );
 
   useEffect(() => {
-    fetchBalances();
-    fetchMyLeaves();
-    fetchTeamLeaves();
-  }, [fetchBalances, fetchMyLeaves, fetchTeamLeaves]);
+    if (activeMainTab === "leaves") {
+      fetchBalances();
+      fetchMyLeaves();
+    } else {
+      fetchTeamLeaves();
+    }
+  }, [fetchBalances, fetchMyLeaves, fetchTeamLeaves, activeMainTab]);
 
   const persistLeavesState = useCallback((nextState: PersistedLeavesState) => {
     if (typeof window === "undefined") return;

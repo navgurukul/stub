@@ -64,3 +64,20 @@ export function getDayOfWeekIndex(date: Date): number {
   const day = date.getDay();
   return day === 0 ? 6 : day - 1;
 }
+
+export interface ApiErrorLike {
+  message?: string;
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
+export const extractErrorMessage = (
+  error: unknown,
+  fallback: string
+): string => {
+  const typedError = error as ApiErrorLike;
+  return typedError.response?.data?.message || typedError.message || fallback;
+};
