@@ -50,7 +50,6 @@ export type LeaveRequest = {
   durationType: "full_day" | "half_day";
   halfDaySegment: "first_half" | "second_half" | null;
   hours: number;
-  reason: string;
   requestedAt: string;
   updatedAt: string;
   decidedByUserId: number | null;
@@ -108,7 +107,6 @@ function ActionsCell({
   const [halfDaySegment, setHalfDaySegment] = useState<"first_half" | "second_half" | "">(
     leave.halfDaySegment ?? ""
   );
-  const [reason, setReason] = useState(leave.reason ?? "");
 
   useEffect(() => {
     if (!isEditOpen || !canEditPendingRequests) {
@@ -169,7 +167,6 @@ function ActionsCell({
     setEndDate(leave.endDate?.slice(0, 10) ?? "");
     setDurationType(leave.durationType);
     setHalfDaySegment(leave.halfDaySegment ?? "");
-    setReason(leave.reason ?? "");
   };
 
   const handleApprove = async () => {
@@ -215,15 +212,8 @@ function ActionsCell({
   };
 
   const handleSaveEdit = async () => {
-    if (!leaveTypeId || !startDate || !endDate || !reason.trim()) {
+    if (!leaveTypeId || !startDate || !endDate) {
       toast.error("Please fill all required fields");
-      return;
-    }
-
-    if (reason.trim().length < VALIDATION.MIN_LEAVE_REASON_LENGTH) {
-      toast.error("Reason is too short", {
-        description: `Please provide at least ${VALIDATION.MIN_LEAVE_REASON_LENGTH} characters.`,
-      });
       return;
     }
 
@@ -258,7 +248,6 @@ function ActionsCell({
       startDate,
       endDate,
       durationType,
-      reason: reason.trim(),
       hours,
     };
 
@@ -502,16 +491,6 @@ function ActionsCell({
                   </div>
                 )}
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor={`reason-${leave.id}`}>Reason</Label>
-                <Textarea
-                  id={`reason-${leave.id}`}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="min-h-[96px]"
-                />
-              </div>
             </div>
 
             <DialogFooter>
@@ -706,18 +685,6 @@ export const columns: ColumnDef<LeaveRequest>[] = [
     cell: ({ row }) => {
       return formatDuration(row.original);
     },
-  },
-  {
-    accessorKey: "reason",
-    header: "Reason",
-    cell: ({ row }) => (
-      <div
-        className="max-w-[200px] truncate text-muted-foreground"
-        title={row.original.reason}
-      >
-        {row.original.reason}
-      </div>
-    ),
   },
   {
     accessorKey: "state",

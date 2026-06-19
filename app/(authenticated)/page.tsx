@@ -671,7 +671,7 @@ export default function DashboardPage() {
         orgId: user.orgId,
         q: query,
         page: 1,
-        limit: 8,
+        limit: 1000,
       };
 
       // Reporting Managers must only see direct reportees.
@@ -2004,6 +2004,8 @@ export default function DashboardPage() {
                 })(),
                 unit: "",
                 sub: "",
+                tooltip:
+                "You are expected to submit timesheets daily. Lifelines allow you to add missed entries for up to 3 past working days. You can use up to 3 lifelines per cycle. This card shows how many lifelines you have remaining in the current cycle.",
                 accent: Number(resolvedBackfill?.remaining ?? 0) > 0 ? "border-l-emerald-400" : "border-l-amber-400",
               },
               {

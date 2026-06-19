@@ -46,7 +46,6 @@ interface LeaveRequest {
   durationType: "full_day" | "half_day";
   halfDaySegment: "first_half" | "second_half" | null;
   hours: number;
-  reason: string;
   requestedAt: string;
   updatedAt: string;
   decidedByUserId: number | null;
@@ -128,7 +127,6 @@ export function LeaveTable({
             <TableHead>Start Date</TableHead>
             <TableHead>End Date</TableHead>
             <TableHead>Duration</TableHead>
-            <TableHead>Reason</TableHead>
             {canDeleteApprovedRequests && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
@@ -154,7 +152,6 @@ export function LeaveTable({
                 {format(parseISO(leave.endDate), DATE_FORMATS.DISPLAY)}
               </TableCell>
               <TableCell>{formatDuration(leave)}</TableCell>
-              <TableCell className="max-w-xs truncate">{leave.reason}</TableCell>
               {canDeleteApprovedRequests && (
                 <TableCell className="text-right">
                   <Button

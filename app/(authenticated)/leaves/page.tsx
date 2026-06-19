@@ -27,6 +27,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -64,7 +65,7 @@ import {
   columns,
   type LeaveRequest as TeamLeaveRequest,
 } from "./history/_components";
-import { NewLeaveRequestDialog } from "./_components/NewLeaveRequestDialog";
+import { NewLeaveRequestDialog, FileUploadField } from "./_components/NewLeaveRequestDialog";
 import apiClient from "@/lib/api-client";
 import { API_PATHS, DATE_FORMATS, VALIDATION } from "@/lib/constants";
 import { mockDataService } from "@/lib/mock-data";
@@ -76,55 +77,20 @@ import { ROLES } from "@/lib/rbac-constants";
 import {
   checkLeaveConflictWithTimesheet,
   invalidateMonthlyTimesheetCache,
+  calculateLeaveDays,
 } from "@/lib/leave-timesheet-validator";
 
-interface LeaveRequest {
-  id: number;
-  user: { id: number; name: string; email: string };
-  managerId: number;
-  leaveType: { id: number; name: string; code: string };
-  state: "pending" | "approved" | "rejected";
-  startDate: string;
-  endDate: string;
-  durationType: "full_day" | "half_day";
-  halfDaySegment: "first_half" | "second_half" | null;
-  hours: number;
-  reason: string;
-  requestedAt: string;
-  updatedAt: string;
-  decidedByUserId: number | null;
-}
-
-interface LeaveBalanceItem {
-  id: number;
-  userId?: number;
-  leaveTypeId: number;
-  balanceHours: number;
-  pendingHours: number;
-  bookedHours: number;
-  allocatedHours: number;
-  asOfDate: string;
-  leaveType: {
-    id: number;
-    code: string;
-    name: string;
-    paid: boolean;
-    requiresApproval: boolean;
-  };
-}
-
-type LeavesMainTab = "leaves" | "my_reportees" | "all_org";
+import {
+  LeaveRequest,
+  LeaveBalanceItem,
+  LeavesMainTab,
+  PersistedLeavesState,
+} from "@/lib/leave-types";
 
 const getDashboardHighlightUrl = (dateApi: string) => {
   const normalized = dateApi.trim();
   return normalized ? `/?date=${encodeURIComponent(normalized)}` : "/";
 };
-
-interface PersistedLeavesState {
-  activeMainTab?: LeavesMainTab;
-  isTeamEmployeeBalanceView?: boolean;
-  teamEmployeeEmail?: string;
-}
 
 export default function LeavesPage() {
   const searchParams = useSearchParams();
@@ -225,33 +191,323 @@ export default function LeavesPage() {
   const adminApplyLeaveFormSchema = z
     .object({
       leaveType: z.string().min(1, "Please select a leave type."),
-      reason: z
-        .string()
-        .min(
-          VALIDATION.MIN_LEAVE_REASON_LENGTH,
-          `Please provide at least ${VALIDATION.MIN_LEAVE_REASON_LENGTH} characters.`
-        ),
       startDate: z.date({ message: "Start date is required." }),
       endDate: z.date({ message: "End date is required." }),
       durationType: z.string().min(1, "Please select a duration type."),
       halfDaySegment: z.string().optional(),
+      
+      // Bereavement fields
+      bereavementRelationship: z.string().optional(),
+      bereavementRelationshipOther: z.string().optional(),
+      
+      // Wedding fields
+      weddingCardImage: z.any().optional(),
+      
+      // Election fields
+      voterIdImage: z.any().optional(),
+      
+      // Exam / L&D fields
+      examCourseName: z.string().optional(),
+      examHallTicket: z.any().optional(),
+      
+      // Vipassana fields
+      vipassanaDocuments: z.array(z.any()).optional(),
     })
-    .refine((data) => data.endDate >= data.startDate, {
-      message: "End date must be on or after the start date.",
-      path: ["endDate"],
+    .superRefine((data, ctx) => {
+      const selectedType = adminLeaveTypes.find((t) => String(t.id) === data.leaveType);
+      const typeName = selectedType?.name?.toLowerCase().trim() || "";
+      const typeCode = selectedType?.code?.toLowerCase().trim() || "";
+
+      const isBereavement = typeName.includes("bereavement") || typeCode === "bl";
+      const isWedding = typeName.includes("wedding") || typeCode === "wd" || typeCode === "wdl";
+      const isExam = typeName.includes("exam") || typeCode === "ex" || typeCode === "el";
+      const isElection = (typeName.includes("election") || typeCode === "ecl") && !isExam;
+      const isLAndD = typeName.includes("lnd") || typeName.includes("l&d") || typeName.includes("learning") || typeCode === "ld" || typeCode === "ldl";
+      const isVipassanaCourse = typeName.includes("vipassana_course") || typeName.includes("vipassana-course") || typeName.includes("vipassana course") || typeCode === "vcl";
+      const isVipassanaSeva = typeName.includes("vipassana_seva") || typeName.includes("vipassana-seva") || typeName.includes("vipassana seva") || typeCode === "vs";
+
+      // 1. Date Range
+      if (data.startDate && data.endDate && data.endDate < data.startDate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "End date must be on or after the start date.",
+          path: ["endDate"],
+        });
+      }
+
+      // 2. Duration Type & Half Day Segment
+      if (data.durationType === "half_day" && !data.halfDaySegment) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please select a half day segment.",
+          path: ["halfDaySegment"],
+        });
+      }
+
+      // 3. Bereavement Validation
+      if (isBereavement) {
+        if (!data.bereavementRelationship) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Relationship is required.",
+            path: ["bereavementRelationship"],
+          });
+        }
+        if (
+          data.bereavementRelationship === "Other Immediate Family Member" &&
+          !data.bereavementRelationshipOther?.trim()
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Please mention your relationship with them.",
+            path: ["bereavementRelationshipOther"],
+          });
+        }
+      }
+
+      // 4. Wedding Validation
+      if (isWedding) {
+        if (!data.weddingCardImage) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Wedding card invitation is required.",
+            path: ["weddingCardImage"],
+          });
+        } else if (data.weddingCardImage instanceof File && data.weddingCardImage.size > 2 * 1024 * 1024) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "File size must not exceed 2MB.",
+            path: ["weddingCardImage"],
+          });
+        }
+      }
+
+      // 5. Election Validation
+      if (isElection) {
+        if (!data.voterIdImage) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Voter ID card is required.",
+            path: ["voterIdImage"],
+          });
+        } else if (data.voterIdImage instanceof File && data.voterIdImage.size > 2 * 1024 * 1024) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "File size must not exceed 2MB.",
+            path: ["voterIdImage"],
+          });
+        }
+      }
+
+      // 6. Exam / L&D Validation
+      if (isExam || isLAndD) {
+        if (!data.examCourseName?.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Course or Exam name is required.",
+            path: ["examCourseName"],
+          });
+        }
+      }
+      if (isExam) {
+        if (!data.examHallTicket) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Hall ticket or exam schedule image is required.",
+            path: ["examHallTicket"],
+          });
+        } else if (data.examHallTicket instanceof File && data.examHallTicket.size > 2 * 1024 * 1024) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "File size must not exceed 2MB.",
+            path: ["examHallTicket"],
+          });
+        }
+      }
+
+      // 7. Vipassana Validation
+      if (isVipassanaCourse || isVipassanaSeva) {
+        if (!data.vipassanaDocuments || (Array.isArray(data.vipassanaDocuments) && data.vipassanaDocuments.length === 0)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "At least one booking confirmation or completion certificate is required.",
+            path: ["vipassanaDocuments"],
+          });
+        } else if (Array.isArray(data.vipassanaDocuments)) {
+          for (const file of data.vipassanaDocuments) {
+            if (file instanceof File && file.size > 2 * 1024 * 1024) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "File size must not exceed 2MB.",
+                path: ["vipassanaDocuments"],
+              });
+              break;
+            }
+          }
+        }
+      }
     });
 
   const adminApplyLeaveForm = useForm<z.infer<typeof adminApplyLeaveFormSchema>>({
     resolver: zodResolver(adminApplyLeaveFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       leaveType: "",
-      reason: "",
       startDate: undefined,
       endDate: undefined,
       durationType: "",
       halfDaySegment: "",
+      bereavementRelationship: "",
+      bereavementRelationshipOther: "",
+      weddingCardImage: undefined,
+      voterIdImage: undefined,
+      examCourseName: "",
+      examHallTicket: undefined,
+      vipassanaDocuments: [],
     },
   });
+
+  const previousAdminLeaveTypeRef = useRef("");
+
+  const watchAdminLeaveType = adminApplyLeaveForm.watch("leaveType");
+  const watchAdminBereavementRelationship = adminApplyLeaveForm.watch("bereavementRelationship");
+
+  const selectedAdminType = adminLeaveTypes.find((t) => String(t.id) === watchAdminLeaveType);
+  const adminTypeName = selectedAdminType?.name?.toLowerCase().trim() || "";
+  const adminTypeCode = selectedAdminType?.code?.toLowerCase().trim() || "";
+
+  const isAdminBereavement = adminTypeName.includes("bereavement") || adminTypeCode === "bl";
+  const isAdminWedding = adminTypeName.includes("wedding") || adminTypeCode === "wd" || adminTypeCode === "wdl";
+  const isAdminExam = adminTypeName.includes("exam") || adminTypeCode === "ex" || adminTypeCode === "el";
+  const isAdminElection = (adminTypeName.includes("election") || adminTypeCode === "ecl") && !isAdminExam;
+  const isAdminLAndD = adminTypeName.includes("lnd") || adminTypeName.includes("l&d") || adminTypeName.includes("learning") || adminTypeCode === "ld" || adminTypeCode === "ldl";
+  const isAdminVipassanaCourse = adminTypeName.includes("vipassana_course") || adminTypeName.includes("vipassana-course") || adminTypeName.includes("vipassana course") || adminTypeCode === "vcl";
+  const isAdminVipassanaSeva = adminTypeName.includes("vipassana_seva") || adminTypeName.includes("vipassana-seva") || adminTypeName.includes("vipassana seva") || adminTypeCode === "vs";
+
+  useEffect(() => {
+    if (!adminApplyLeaveOpen) {
+      previousAdminLeaveTypeRef.current = "";
+      return;
+    }
+
+    if (!watchAdminLeaveType) return;
+
+    const isFirstSelection = previousAdminLeaveTypeRef.current === "";
+
+    if (!isFirstSelection) {
+      adminApplyLeaveForm.setValue("startDate", undefined as unknown as Date);
+      adminApplyLeaveForm.setValue("endDate", undefined as unknown as Date);
+      setAdminLeaveDateRange(undefined);
+    }
+
+    adminApplyLeaveForm.setValue("durationType", "");
+    adminApplyLeaveForm.setValue("halfDaySegment", "");
+    adminApplyLeaveForm.setValue("bereavementRelationship", "");
+    adminApplyLeaveForm.setValue("bereavementRelationshipOther", "");
+    adminApplyLeaveForm.setValue("weddingCardImage", undefined);
+    adminApplyLeaveForm.setValue("voterIdImage", undefined);
+    adminApplyLeaveForm.setValue("examCourseName", "");
+    adminApplyLeaveForm.setValue("examHallTicket", undefined);
+    adminApplyLeaveForm.setValue("vipassanaDocuments", []);
+    setAdminLeaveValidationError(null);
+
+    previousAdminLeaveTypeRef.current = watchAdminLeaveType;
+  }, [watchAdminLeaveType, adminApplyLeaveOpen, adminApplyLeaveForm]);
+
+  const watchAdminStartDate = adminApplyLeaveForm.watch("startDate");
+  const watchAdminEndDate = adminApplyLeaveForm.watch("endDate");
+  const watchAdminDurationType = adminApplyLeaveForm.watch("durationType");
+
+  const validateAdminLeaveConflict = useCallback(
+    async (startDate?: Date, endDate?: Date, durationType?: string) => {
+      if (!startDate || !endDate || !durationType) {
+        setAdminLeaveValidationError(null);
+        return;
+      }
+      setAdminLeaveIsValidating(true);
+      setAdminLeaveValidationError(null);
+      try {
+        const result = await checkLeaveConflictWithTimesheet(
+          startDate,
+          endDate,
+          durationType as "full_day" | "half_day"
+        );
+        if (result.hasConflict) {
+          setAdminLeaveValidationError(result.message || "Conflict detected");
+        } else {
+          setAdminLeaveValidationError(null);
+        }
+      } catch {
+        setAdminLeaveValidationError(null);
+      } finally {
+        setAdminLeaveIsValidating(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      validateAdminLeaveConflict(watchAdminStartDate, watchAdminEndDate, watchAdminDurationType);
+    }, 500);
+    return () => clearTimeout(id);
+  }, [watchAdminStartDate, watchAdminEndDate, watchAdminDurationType, validateAdminLeaveConflict]);
+
+  const handleAdminSingleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setAdminLeaveDateRange({ from: date, to: date });
+      adminApplyLeaveForm.setValue("startDate", date, { shouldValidate: true, shouldDirty: true });
+      adminApplyLeaveForm.setValue("endDate", date, { shouldValidate: true, shouldDirty: true });
+      setIsAdminDatePickerOpen(false);
+    } else {
+      setAdminLeaveDateRange(undefined);
+      adminApplyLeaveForm.setValue("startDate", undefined as any, { shouldValidate: true, shouldDirty: true });
+      adminApplyLeaveForm.setValue("endDate", undefined as any, { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  useEffect(() => {
+    if (!adminApplyLeaveOpen) {
+      adminApplyLeaveForm.reset({
+        leaveType: "",
+        startDate: undefined,
+        endDate: undefined,
+        durationType: "",
+        halfDaySegment: "",
+        bereavementRelationship: "",
+        bereavementRelationshipOther: "",
+        weddingCardImage: undefined,
+        voterIdImage: undefined,
+        examCourseName: "",
+        examHallTicket: undefined,
+        vipassanaDocuments: [],
+      });
+      setAdminLeaveDateRange(undefined);
+      setAdminLeaveValidationError(null);
+      setIsAdminDatePickerOpen(false);
+    }
+  }, [adminApplyLeaveOpen, adminApplyLeaveForm]);
+
+  useEffect(() => {
+    adminApplyLeaveForm.reset({
+      leaveType: "",
+      startDate: undefined,
+      endDate: undefined,
+      durationType: "",
+      halfDaySegment: "",
+      bereavementRelationship: "",
+      bereavementRelationshipOther: "",
+      weddingCardImage: undefined,
+      voterIdImage: undefined,
+      examCourseName: "",
+      examHallTicket: undefined,
+      vipassanaDocuments: [],
+    });
+    setAdminLeaveDateRange(undefined);
+    setAdminLeaveValidationError(null);
+    setIsAdminDatePickerOpen(false);
+  }, [adminApplyEmployeeUserId, adminApplyLeaveForm]);
 
   const durationTypes = mockDataService.getDurationTypes();
 
@@ -331,7 +587,7 @@ export default function LeavesPage() {
           orgId: user.orgId,
           q: query,
           page: 1,
-          limit: 8,
+          limit: 1000,
           managerId: user.id,
         };
 
@@ -373,7 +629,7 @@ export default function LeavesPage() {
             orgId: user.orgId,
             q: query,
             page: 1,
-            limit: 8,
+            limit: 1000,
           },
         });
 
@@ -661,29 +917,96 @@ export default function LeavesPage() {
           return;
         }
 
-        const start = new Date(values.startDate);
-        const end = new Date(values.endDate);
-        const days =
-          Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        const hours =
-          values.durationType === "full_day" ? days * 8 : days * 4;
+        const conflict = await checkLeaveConflictWithTimesheet(
+          values.startDate,
+          values.endDate,
+          values.durationType as "full_day" | "half_day"
+        );
+        if (conflict.hasConflict) {
+          toast.error("Conflict with timesheet entries", {
+            description: conflict.message,
+          });
+          setAdminApplyLeaveSubmitting(false);
+          return;
+        }
 
-        const payload: Record<string, unknown> = {
-          userId: adminApplyEmployeeUserId,
-          leaveTypeId: selectedLeaveType.id,
-          startDate: format(values.startDate, DATE_FORMATS.API),
-          endDate: format(values.endDate, DATE_FORMATS.API),
-          hours,
-          reason: values.reason,
-          durationType: values.durationType,
-        };
+        const netDays = await calculateLeaveDays(values.startDate, values.endDate);
+        if (netDays === 0) {
+          toast.error("Selected date range consists only of non-working days or holidays");
+          setAdminApplyLeaveSubmitting(false);
+          return;
+        }
+
+        const hours =
+          values.durationType === "full_day" ? netDays * 8 : netDays * 4;
+
+        const typeName = (selectedLeaveType.name || "").toLowerCase().trim();
+        const typeCode = (selectedLeaveType.code || "").toLowerCase().trim();
+
+        const isBereavement = typeName.includes("bereavement") || typeCode === "bl";
+        const isWedding = typeName.includes("wedding") || typeCode === "wd" || typeCode === "wdl";
+        const isExam = typeName.includes("exam") || typeCode === "ex" || typeCode === "el";
+        const isElection = (typeName.includes("election") || typeCode === "ecl") && !isExam;
+        const isLAndD = typeName.includes("lnd") || typeName.includes("l&d") || typeName.includes("learning") || typeCode === "ld" || typeCode === "ldl";
+        const isVipassanaCourse = typeName.includes("vipassana_course") || typeName.includes("vipassana-course") || typeName.includes("vipassana course") || typeCode === "vcl";
+        const isVipassanaSeva = typeName.includes("vipassana_seva") || typeName.includes("vipassana-seva") || typeName.includes("vipassana seva") || typeCode === "vs";
+
+        const formData = new FormData();
+        formData.append("userId", String(adminApplyEmployeeUserId));
+        formData.append("leaveTypeId", String(selectedLeaveType.id));
+        formData.append("startDate", format(values.startDate, DATE_FORMATS.API));
+        formData.append("endDate", format(values.endDate, DATE_FORMATS.API));
+        formData.append("hours", String(hours));
+        formData.append("durationType", values.durationType);
         if (values.durationType === "half_day" && values.halfDaySegment) {
-          payload.halfDaySegment = values.halfDaySegment;
+          formData.append("halfDaySegment", values.halfDaySegment);
+        }
+
+        if (isBereavement) {
+          if (values.bereavementRelationship) {
+            formData.append("relationship", values.bereavementRelationship);
+          }
+          if (values.bereavementRelationshipOther) {
+            formData.append("relationshipDetails", values.bereavementRelationshipOther);
+          }
+        }
+
+        if (isWedding && values.weddingCardImage) {
+          formData.append("document", values.weddingCardImage);
+        }
+
+        if (isElection && values.voterIdImage) {
+          formData.append("document", values.voterIdImage);
+        }
+
+        if (isExam || isLAndD) {
+          if (values.examCourseName) {
+            formData.append("courseOrProgrammeName", values.examCourseName);
+          }
+          if (values.examHallTicket) {
+            formData.append("document", values.examHallTicket);
+          }
+        }
+
+        if ((isVipassanaCourse || isVipassanaSeva) && values.vipassanaDocuments) {
+          const docs = Array.isArray(values.vipassanaDocuments)
+            ? values.vipassanaDocuments
+            : [values.vipassanaDocuments];
+          docs.forEach((doc) => {
+            if (doc instanceof File) {
+              formData.append("document", doc);
+            }
+          });
         }
 
         const response = await apiClient.post(
           API_PATHS.LEAVES_ADMIN_APPLY,
-          payload
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
         if (response.status === 200 || response.status === 201) {
           toast.success(`Leave request submitted successfully for ${adminApplyEmployeeEmail || "employee"}`);
@@ -699,11 +1022,17 @@ export default function LeavesPage() {
           }
           adminApplyLeaveForm.reset({
             leaveType: "",
-            reason: "",
             startDate: undefined,
             endDate: undefined,
             durationType: "",
             halfDaySegment: "",
+            bereavementRelationship: "",
+            bereavementRelationshipOther: "",
+            weddingCardImage: undefined,
+            voterIdImage: undefined,
+            examCourseName: "",
+            examHallTicket: undefined,
+            vipassanaDocuments: [],
           });
           setAdminLeaveDateRange(undefined);
           setIsAdminDatePickerOpen(false);
@@ -767,14 +1096,15 @@ export default function LeavesPage() {
   ]);
 
   useEffect(() => {
+    if (isAdminElection) return; // Managed separately for single date picker
     if (adminLeaveDateRange?.from && adminLeaveDateRange?.to) {
-      adminApplyLeaveForm.setValue("startDate", adminLeaveDateRange.from);
-      adminApplyLeaveForm.setValue("endDate", adminLeaveDateRange.to);
+      adminApplyLeaveForm.setValue("startDate", adminLeaveDateRange.from, { shouldValidate: true, shouldDirty: true });
+      adminApplyLeaveForm.setValue("endDate", adminLeaveDateRange.to, { shouldValidate: true, shouldDirty: true });
     } else if (adminLeaveDateRange?.from && !adminLeaveDateRange?.to) {
-      adminApplyLeaveForm.setValue("startDate", adminLeaveDateRange.from);
-      adminApplyLeaveForm.setValue("endDate", adminLeaveDateRange.from);
+      adminApplyLeaveForm.setValue("startDate", adminLeaveDateRange.from, { shouldValidate: true, shouldDirty: true });
+      adminApplyLeaveForm.setValue("endDate", adminLeaveDateRange.from, { shouldValidate: true, shouldDirty: true });
     }
-  }, [adminLeaveDateRange, adminApplyLeaveForm]);
+  }, [adminLeaveDateRange, adminApplyLeaveForm, isAdminElection]);
 
   // Internal search function that only fetches data
   const fetchEmployeeLeaveBalance = useCallback(async (email: string) => {
@@ -1849,7 +2179,6 @@ export default function LeavesPage() {
                         <TableHead className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</TableHead>
                         <TableHead className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</TableHead>
                         <TableHead className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Duration</TableHead>
-                        <TableHead className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reason</TableHead>
                         <TableHead className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1903,9 +2232,6 @@ export default function LeavesPage() {
                               <span className="inline-flex items-center justify-center min-w-[2.5rem] rounded-md bg-secondary-background border border-border px-2 py-0.5 text-xs font-semibold text-foreground tabular-nums">
                                 {formatDays(leave)}
                               </span>
-                            </TableCell>
-                            <TableCell className="px-4 py-3.5 text-muted-foreground max-w-[220px] truncate text-sm">
-                              {leave.reason}
                             </TableCell>
                             <TableCell className="px-4 py-3.5 text-right">
                               {getStatusBadge(leave.state)}
@@ -2404,35 +2730,223 @@ export default function LeavesPage() {
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  <FormMessage />
+                                  <FormMessage className="text-red-500" />
                                 </FormItem>
                               )}
                             />
 
-                            <FormField
-                              control={adminApplyLeaveForm.control}
-                              name="reason"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Reason for Leave</FormLabel>
-                                  <FormControl>
-                                    <Textarea
-                                      placeholder="Please provide a reason for the leave request..."
-                                      className="min-h-[80px] resize-none"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+
+
+                            {/* Conditional Bereavement Fields */}
+                            {isAdminBereavement && (
+                              <div className="space-y-4 border-primary/20 py-1">
+                                <FormField
+                                  control={adminApplyLeaveForm.control}
+                                  name="bereavementRelationship"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>
+                                        Deepest condolences for their loss. Please describe the relationship to the deceased
+                                      </FormLabel>
+                                      <Select
+                                        value={field.value || ""}
+                                        onValueChange={field.onChange}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select relationship" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="Parent">Parent</SelectItem>
+                                          <SelectItem value="Child">Child</SelectItem>
+                                          <SelectItem value="Other Immediate Family Member">
+                                            Other Immediate Family Member
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                {watchAdminBereavementRelationship === "Other Immediate Family Member" && (
+                                  <FormField
+                                    control={adminApplyLeaveForm.control}
+                                    name="bereavementRelationshipOther"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Please mention the relationship with them</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            placeholder="Describe the relationship"
+                                            {...field}
+                                            value={field.value || ""}
+                                          />
+                                        </FormControl>
+                                        <FormMessage className="text-red-500" />
+                                      </FormItem>
+                                    )}
+                                  />
+                                )}
+                              </div>
+                            )}
+
+                            {/* Conditional Wedding Fields */}
+                            {isAdminWedding && (
+                              <div className="space-y-4 border-primary/20 py-1">
+                                <Alert className="bg-primary/5 border-primary/20">
+                                  <AlertCircle className="h-4 w-4 !text-foreground" />
+                                  <AlertDescription className="text-foreground">
+                                    Wedding Congratulations! We wish them a lifetime of happiness and love! ❤️
+                                  </AlertDescription>
+                                </Alert>
+
+                                <FormField
+                                  control={adminApplyLeaveForm.control}
+                                  name="weddingCardImage"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <FileUploadField
+                                          label="Upload an image of the wedding card invitation"
+                                          accept="image/*"
+                                          value={field.value}
+                                          onChange={(val) => {
+                                            field.onChange(val);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            )}
+
+                            {/* Conditional Election Fields */}
+                            {isAdminElection && (
+                              <div className="space-y-4 border-primary/20 py-1">
+                                <FormField
+                                  control={adminApplyLeaveForm.control}
+                                  name="voterIdImage"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <FileUploadField
+                                          label="Upload the Voter ID card"
+                                          accept="image/*"
+                                          value={field.value}
+                                          onChange={(val) => {
+                                            field.onChange(val);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            )}
+
+                            {/* Conditional Exam Fields */}
+                            {isAdminExam && (
+                              <div className="space-y-4 border-primary/20 py-1">
+                                <FormField
+                                  control={adminApplyLeaveForm.control}
+                                  name="examCourseName"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Course or Exam Name</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="Enter course or exam name"
+                                          {...field}
+                                          value={field.value || ""}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={adminApplyLeaveForm.control}
+                                  name="examHallTicket"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <FileUploadField
+                                          label="Upload the hall ticket or exam schedule image with the university’s letterhead"
+                                          accept="image/*,application/pdf"
+                                          value={field.value}
+                                          onChange={(val) => {
+                                            field.onChange(val);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            )}
+
+                             {/* Conditional L&D Fields */}
+                             {isAdminLAndD && (
+                               <div className="space-y-4 border-primary/20 py-1">
+                                 <FormField
+                                   control={adminApplyLeaveForm.control}
+                                   name="examCourseName"
+                                   render={({ field }) => (
+                                     <FormItem>
+                                       <FormLabel>Learning program, course, workshop, or event name</FormLabel>
+                                       <FormControl>
+                                         <Input
+                                           placeholder="Enter learning program, course, workshop, or event name"
+                                           {...field}
+                                           value={field.value || ""}
+                                         />
+                                       </FormControl>
+                                       <FormMessage className="text-red-500" />
+                                     </FormItem>
+                                   )}
+                                 />
+                               </div>
+                             )}
+
+                            {/* Conditional Vipassana Fields */}
+                            {(isAdminVipassanaCourse || isAdminVipassanaSeva) && (
+                              <div className="space-y-4 border-primary/20 py-1">
+                                <FormField
+                                  control={adminApplyLeaveForm.control}
+                                  name="vipassanaDocuments"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <FileUploadField
+                                          label="Upload the booking confirmation and/or completion certificate"
+                                          accept="image/*,application/pdf"
+                                          multiple={true}
+                                          value={field.value}
+                                          onChange={(val) => {
+                                            field.onChange(val);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            )}
 
                             <FormField
                               control={adminApplyLeaveForm.control}
                               name="startDate"
                               render={() => (
                                 <FormItem className="flex flex-col">
-                                  <FormLabel>Leave Date Range</FormLabel>
+                                  <FormLabel>{isAdminElection ? "Leave Date" : "Leave Date Range"}</FormLabel>
                                   <Popover modal open={isAdminDatePickerOpen} onOpenChange={setIsAdminDatePickerOpen}>
                                     <PopoverTrigger asChild>
                                       <Button
@@ -2445,33 +2959,53 @@ export default function LeavesPage() {
                                       >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {adminLeaveDateRange?.from ? (
-                                          adminLeaveDateRange.to ? (
+                                          isAdminElection ||
+                                          !adminLeaveDateRange.to ||
+                                          format(adminLeaveDateRange.from, DATE_FORMATS.DISPLAY) ===
+                                            format(adminLeaveDateRange.to, DATE_FORMATS.DISPLAY) ? (
+                                            format(adminLeaveDateRange.from, DATE_FORMATS.DISPLAY)
+                                          ) : (
                                             <>
                                               {format(adminLeaveDateRange.from, DATE_FORMATS.DISPLAY)} - {format(adminLeaveDateRange.to, DATE_FORMATS.DISPLAY)}
                                             </>
-                                          ) : (
-                                            format(adminLeaveDateRange.from, DATE_FORMATS.DISPLAY)
                                           )
                                         ) : (
-                                          <span>Pick a date range</span>
+                                          <span>{isAdminElection ? "Pick a date" : "Pick a date range"}</span>
                                         )}
                                       </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0 border-0" align="start" side="bottom" sideOffset={8} style={{ zIndex: 9999 }}>
-                                      <Calendar
-                                        mode="range"
-                                        defaultMonth={adminLeaveDateRange?.from}
-                                        selected={adminLeaveDateRange}
-                                        onSelect={(range) => {
-                                          setAdminLeaveDateRange(range);
-                                          if (range?.from && range?.to) setIsAdminDatePickerOpen(false);
-                                        }}
-                                        numberOfMonths={2}
-                                        initialFocus
-                                      />
+                                      {isAdminElection ? (
+                                        <Calendar
+                                          mode="single"
+                                          defaultMonth={adminLeaveDateRange?.from}
+                                          selected={adminLeaveDateRange?.from}
+                                          onSelect={handleAdminSingleDateSelect}
+                                          disabled={(date) => date < new Date(1900, 0, 1)}
+                                          initialFocus
+                                        />
+                                      ) : (
+                                        <Calendar
+                                          mode="range"
+                                          defaultMonth={adminLeaveDateRange?.from}
+                                          selected={adminLeaveDateRange}
+                                          onSelect={(range) => {
+                                            setAdminLeaveDateRange(range);
+                                            if (range?.from && range?.to) setIsAdminDatePickerOpen(false);
+                                          }}
+                                          numberOfMonths={2}
+                                          disabled={(date) => date < new Date(1900, 0, 1)}
+                                          initialFocus
+                                        />
+                                      )}
                                     </PopoverContent>
                                   </Popover>
-                                  <FormMessage />
+                                  <FormDescription>
+                                    {isAdminElection
+                                      ? "Click to select the date of the election leave"
+                                      : "Click to select start date, then click end date for range"}
+                                  </FormDescription>
+                                  <FormMessage className="text-red-500" />
                                 </FormItem>
                               )}
                             />
@@ -2496,7 +3030,7 @@ export default function LeavesPage() {
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  <FormMessage />
+                                  <FormMessage className="text-red-500" />
                                 </FormItem>
                               )}
                             />
@@ -2519,7 +3053,7 @@ export default function LeavesPage() {
                                         <SelectItem value="second_half">Second Half</SelectItem>
                                       </SelectContent>
                                     </Select>
-                                    <FormMessage />
+                                    <FormMessage className="text-red-500" />
                                   </FormItem>
                                 )}
                               />
@@ -2539,21 +3073,41 @@ export default function LeavesPage() {
                                 onClick={() => {
                                   adminApplyLeaveForm.reset({
                                     leaveType: "",
-                                    reason: "",
                                     startDate: undefined,
                                     endDate: undefined,
                                     durationType: "",
                                     halfDaySegment: "",
+                                    bereavementRelationship: "",
+                                    bereavementRelationshipOther: "",
+                                    weddingCardImage: undefined,
+                                    voterIdImage: undefined,
+                                    examCourseName: "",
+                                    examHallTicket: undefined,
+                                    vipassanaDocuments: [],
                                   });
                                   setAdminLeaveDateRange(undefined);
                                   setAdminLeaveValidationError(null);
                                 }}
-                                disabled={adminApplLeaveSubmitting}
+                                disabled={
+                                  adminApplLeaveSubmitting ||
+                                  adminLeaveIsValidating
+                                }
                               >
                                 Reset
                               </Button>
-                              <Button type="submit" disabled={adminApplLeaveSubmitting}>
-                                {adminApplLeaveSubmitting ? "Applying..." : "Apply Leave"}
+                              <Button
+                                type="submit"
+                                disabled={
+                                  adminApplLeaveSubmitting ||
+                                  adminLeaveIsValidating ||
+                                  !!adminLeaveValidationError
+                                }
+                              >
+                                {adminApplLeaveSubmitting
+                                  ? "Applying..."
+                                  : adminLeaveIsValidating
+                                    ? "Validating..."
+                                    : "Apply Leave"}
                               </Button>
                             </div>
                           </div>

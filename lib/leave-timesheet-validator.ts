@@ -488,3 +488,49 @@ export async function checkTimesheetConflictWithLeave(
     return { hasConflict: false };
   }
 }
+
+/**
+ * Calculate the number of actual leave days in a range (excluding off-days and holidays)
+ * @param startDate - Start date of the range
+ * @param endDate - End date of the range
+ * @returns Net working days (leave days)
+ */
+export async function calculateLeaveDays(
+  startDate: Date,
+  endDate: Date
+): Promise<number> {
+  let count = 0;
+  const current = new Date(startDate.getTime());
+  current.setHours(0, 0, 0, 0);
+  const end = new Date(endDate.getTime());
+  end.setHours(0, 0, 0, 0);
+
+  while (current <= end) {
+    const isWeekend = isNonWorkingDay(current);
+    const isFixedHoliday = await isHoliday(current);
+    if (!isWeekend && !isFixedHoliday) {
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+}
+
+export interface LeaveTypeResponse {
+  id: number;
+  code: string;
+  name: string;
+  paid: boolean;
+  requiresApproval: boolean;
+  description?: string;
+  maxPerRequestHours?: number;
+  balanceHours?: number;
+}
+
+export interface LeaveApplicationFormProps {
+  userEmail: string;
+  fetchLeaves: () => Promise<void>;
+  prefilledDate?: string;
+}
+
+

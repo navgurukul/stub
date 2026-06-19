@@ -123,7 +123,11 @@ export function SearchCombobox({
           <ChevronsUpDown className="h-4 w-4 opacity-70" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="border-0 p-0" align="start">
+      <PopoverContent
+        className="border-0 p-0 pointer-events-auto"
+        style={{ width: "var(--radix-popover-trigger-width)" }}
+        align="start"
+      >
         <Command shouldFilter={false}>
           <CommandInput
             value={query}
@@ -140,7 +144,11 @@ export function SearchCombobox({
             }}
             placeholder={searchPlaceholder}
           />
-          <CommandList>
+          <CommandList
+            className="max-h-60 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onWheel={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <CommandEmpty>{resolvedEmptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -154,12 +162,11 @@ export function SearchCombobox({
                   }}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm">{option.label}</p>
-                    {option.description ? (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {option.description}
-                      </p>
-                    ) : null}
+                    <p className="truncate text-sm">
+                      {option.description
+                        ? `${option.label} (${option.description})`
+                        : option.label}
+                    </p>
                   </div>
                 </CommandItem>
               ))}

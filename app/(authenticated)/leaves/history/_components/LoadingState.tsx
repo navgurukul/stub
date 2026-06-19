@@ -10,7 +10,6 @@ const LEAVE_TABLE_COLUMNS = [
   { header: "Start Date", skeletonWidth: "w-24" },
   { header: "End Date", skeletonWidth: "w-24" },
   { header: "Duration", skeletonWidth: "w-24" },
-  { header: "Reason", skeletonWidth: "w-40" },
 ];
 
 export function LoadingState() {
