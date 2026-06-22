@@ -60,6 +60,13 @@ export interface LeaveBalanceItem {
   };
 }
 
+export interface LeaveSummary {
+  availableEarnedLeaves: number;
+  totalAllocatedEarnedLeaves: number;
+  pending: number;
+  approved: number;
+}
+
 export type LeavesMainTab = "leaves" | "my_reportees" | "all_org";
 
 export interface PersistedLeavesState {

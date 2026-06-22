@@ -83,6 +83,7 @@ import {
 import {
   LeaveRequest,
   LeaveBalanceItem,
+  LeaveSummary,
   LeavesMainTab,
   PersistedLeavesState,
 } from "@/lib/leave-types";
@@ -135,6 +136,7 @@ export default function LeavesPage() {
   const [leaveHistory, setLeaveHistory] = useState<LeaveRequest[]>([]);
   const [teamLeaveHistory, setTeamLeaveHistory] = useState<TeamLeaveRequest[]>([]);
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
+  const [leaveSummary, setLeaveSummary] = useState<LeaveSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTeamLoading, setIsTeamLoading] = useState(true);
   const [isBalancesLoading, setIsBalancesLoading] = useState(true);
@@ -254,14 +256,22 @@ export default function LeavesPage() {
           });
         }
         if (
-          data.bereavementRelationship === "Other Immediate Family Member" &&
-          !data.bereavementRelationshipOther?.trim()
+          data.bereavementRelationship === "Other Immediate Family Member"
         ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Please mention your relationship with them.",
-            path: ["bereavementRelationshipOther"],
-          });
+          const otherVal = data.bereavementRelationshipOther?.trim() || "";
+          if (!otherVal) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Please mention your relationship with them.",
+              path: ["bereavementRelationshipOther"],
+            });
+          } else if (/\d/.test(otherVal)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Relationship must be valid text. Numbers are not accepted.",
+              path: ["bereavementRelationshipOther"],
+            });
+          }
         }
       }
 
@@ -334,6 +344,13 @@ export default function LeavesPage() {
             path: ["vipassanaDocuments"],
           });
         } else if (Array.isArray(data.vipassanaDocuments)) {
+          if (data.vipassanaDocuments.length > 2) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Maximum 2 documents should be allowed.",
+              path: ["vipassanaDocuments"],
+            });
+          }
           for (const file of data.vipassanaDocuments) {
             if (file instanceof File && file.size > 2 * 1024 * 1024) {
               ctx.addIssue({
@@ -538,6 +555,9 @@ export default function LeavesPage() {
     try {
       const res = await apiClient.get(API_PATHS.LEAVES_BALANCES);
       setBalances(Array.isArray(res.data?.balances) ? res.data.balances : []);
+      if (res.data?.summary) {
+        setLeaveSummary(res.data.summary);
+      }
     } catch {
       setBalances([]);
     } finally {
@@ -1397,20 +1417,13 @@ export default function LeavesPage() {
     });
   }, [balances]);
 
-  // Summary stats from balances
-  const summaryStats = useMemo(() => {
-    const firstBalance = visibleBalances[0];
-    const allocated = (firstBalance?.allocatedHours ?? 0) / 8;
-    const available = (firstBalance?.balanceHours ?? 0) / 8;
-    const pending = visibleBalances.reduce((sum, b) => sum + b.pendingHours / 8, 0);
-    const approved = visibleBalances.reduce((sum, b) => sum + b.bookedHours / 8, 0);
-    return {
-      available,
-      allocated,
-      pending,
-      approved,
-    };
-  }, [visibleBalances]);
+  // Summary stats from balances API summary field
+  const summaryStats = useMemo(() => ({
+    available: leaveSummary?.availableEarnedLeaves ?? 0,
+    allocated: leaveSummary?.totalAllocatedEarnedLeaves ?? 0,
+    pending: leaveSummary?.pending ?? 0,
+    approved: leaveSummary?.approved ?? 0,
+  }), [leaveSummary]);
 
   // Filtered leave requests
   const filteredLeaves = useMemo(() => {
@@ -2760,7 +2773,7 @@ export default function LeavesPage() {
                                         <SelectContent>
                                           <SelectItem value="Parent">Parent</SelectItem>
                                           <SelectItem value="Child">Child</SelectItem>
-                                          <SelectItem value="Other Immediate Family Member">
+                                          <SelectItem value="other_immediate_family_member">
                                             Other Immediate Family Member
                                           </SelectItem>
                                         </SelectContent>
@@ -2770,7 +2783,7 @@ export default function LeavesPage() {
                                   )}
                                 />
 
-                                {watchAdminBereavementRelationship === "Other Immediate Family Member" && (
+                                {watchAdminBereavementRelationship === "other_immediate_family_member" && (
                                   <FormField
                                     control={adminApplyLeaveForm.control}
                                     name="bereavementRelationshipOther"
@@ -2871,24 +2884,25 @@ export default function LeavesPage() {
                                 />
 
                                 <FormField
-                                  control={adminApplyLeaveForm.control}
-                                  name="examHallTicket"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <FileUploadField
-                                          label="Upload the hall ticket or exam schedule image with the university’s letterhead"
-                                          accept="image/*,application/pdf"
-                                          value={field.value}
-                                          onChange={(val) => {
-                                            field.onChange(val);
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormMessage className="text-red-500" />
-                                    </FormItem>
-                                  )}
-                                />
+                                   control={adminApplyLeaveForm.control}
+                                   name="examHallTicket"
+                                   render={({ field, fieldState }) => (
+                                     <FormItem>
+                                       <FormControl>
+                                         <FileUploadField
+                                           label="Upload the hall ticket or exam schedule image with the university’s letterhead"
+                                           accept="image/*,application/pdf"
+                                           value={field.value}
+                                           onChange={(val) => {
+                                             field.onChange(val);
+                                           }}
+                                           error={fieldState.error?.message}
+                                         />
+                                       </FormControl>
+                                       <FormMessage className="text-red-500" />
+                                     </FormItem>
+                                   )}
+                                 />
                               </div>
                             )}
 

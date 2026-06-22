@@ -232,6 +232,10 @@ export function ProjectEntryCard({
                 className="min-h-[100px] resize-none"
                 disabled={!isHoursAndDescriptionEnabled}
                 {...field}
+                onChange={(e) => {
+                  field.onChange(e);
+                  form.trigger(`projectEntries.${index}.taskDescription`);
+                }}
               />
             </FormControl>
             <FormDescription>
