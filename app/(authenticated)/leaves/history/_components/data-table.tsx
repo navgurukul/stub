@@ -70,6 +70,8 @@ export function DataTable<TData, TValue>({
     React.useState(false);
   const [isBulkPolicyAcknowledged, setIsBulkPolicyAcknowledged] =
     React.useState(false);
+  const [wasBulkPreValidated, setWasBulkPreValidated] =
+    React.useState(false);
 
   const leavePolicyUrl = process.env.NEXT_PUBLIC_LEAVE_POLICY_URL?.trim() ?? "";
 
@@ -103,38 +105,39 @@ export function DataTable<TData, TValue>({
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const hasSelectedRows = selectedRows.length > 0;
 
-  const handleBulkApprove = async () => {
-    const requestIds = selectedRows.map(
-      (row) => (row.original as { id: number }).id
-    );
-
-    if (requestIds.length === 0) {
-      toast.error("No requests selected", {
-        description: "Please select at least one leave request to approve.",
-      });
-      return false;
-    }
-
+  const handlePreBulkApproveCheck = async () => {
+    const requestIds = selectedRows.map((row) => (row.original as { id: number }).id);
     setIsBulkApproving(true);
     try {
-      await apiClient.post(API_PATHS.LEAVES_BULK_APPROVE, {
-        requestIds,
+      await apiClient.post(`${API_PATHS.LEAVES_BULK_APPROVE}?validate=true`, { requestIds });
+      setWasBulkPreValidated(true);
+      setIsBulkApproveDialogOpen(true);
+    } catch (error) {
+      toast.error("Failed to approve leave requests", {
+        description: extractErrorMessage(error, "Unable to validate the selected requests. Please try again."),
       });
+    } finally {
+      setIsBulkApproving(false);
+    }
+  };
 
+  const handleBulkApprove = async () => {
+    const requestIds = selectedRows.map((row) => (row.original as { id: number }).id);
+    setIsBulkApproving(true);
+    try {
+      if (!wasBulkPreValidated) {
+        await apiClient.post(API_PATHS.LEAVES_BULK_APPROVE, { requestIds });
+      }
       toast.success("Leave requests approved", {
-        description: `Successfully approved ${requestIds.length} leave request${
-          requestIds.length > 1 ? "s" : ""
-        }.`,
+        description: `Successfully approved ${requestIds.length} leave request${requestIds.length > 1 ? "s" : ""}.`,
       });
-
       table.resetRowSelection();
-
       if (onUpdate) {
         onUpdate();
       }
+      setWasBulkPreValidated(false);
       return true;
     } catch (error) {
-      console.error("Error bulk approving leave requests:", error);
       toast.error("Failed to approve leave requests", {
         description: extractErrorMessage(error, "Unable to approve the selected requests. Please try again."),
       });
@@ -145,36 +148,18 @@ export function DataTable<TData, TValue>({
   };
 
   const handleBulkReject = async () => {
-    const requestIds = selectedRows.map(
-      (row) => (row.original as { id: number }).id
-    );
-
-    if (requestIds.length === 0) {
-      toast.error("No requests selected", {
-        description: "Please select at least one leave request to reject.",
-      });
-      return;
-    }
-
+    const requestIds = selectedRows.map((row) => (row.original as { id: number }).id);
     setIsBulkRejecting(true);
     try {
-      await apiClient.post(API_PATHS.LEAVES_BULK_REJECT, {
-        requestIds,
-      });
-
+      await apiClient.post(API_PATHS.LEAVES_BULK_REJECT, { requestIds });
       toast.success("Leave requests rejected", {
-        description: `Successfully rejected ${requestIds.length} leave request${
-          requestIds.length > 1 ? "s" : ""
-        }.`,
+        description: `Successfully rejected ${requestIds.length} leave request${requestIds.length > 1 ? "s" : ""}.`,
       });
-
       table.resetRowSelection();
-
       if (onUpdate) {
         onUpdate();
       }
     } catch (error) {
-      console.error("Error bulk rejecting leave requests:", error);
       toast.error("Failed to reject leave requests", {
         description: extractErrorMessage(error, "Unable to reject the selected requests. Please try again."),
       });
@@ -192,33 +177,39 @@ export function DataTable<TData, TValue>({
             selected
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="default"
+              disabled={isBulkLoading}
+              size="sm"
+              className="bg-[#a5b68c] text-white hover:bg-[#8f9f76]"
+              onClick={handlePreBulkApproveCheck}
+            >
+              {isBulkApproving ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" /> Approving...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" /> Approve Selected
+                </>
+              )}
+            </Button>
             <Dialog
               open={isBulkApproveDialogOpen}
               onOpenChange={(open) => {
                 setIsBulkApproveDialogOpen(open);
                 if (!open) {
                   setIsBulkPolicyAcknowledged(false);
+                  if (wasBulkPreValidated) {
+                    table.resetRowSelection();
+                    if (onUpdate) {
+                      onUpdate();
+                    }
+                    setWasBulkPreValidated(false);
+                  }
                 }
               }}
             >
-              <DialogTrigger asChild>
-                <Button
-                  variant="default"
-                  disabled={isBulkLoading}
-                  size="sm"
-                  className="bg-[#a5b68c] text-white hover:bg-[#8f9f76]"
-                >
-                  {isBulkApproving ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" /> Approving...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" /> Approve Selected
-                    </>
-                  )}
-                </Button>
-              </DialogTrigger>
               <DialogContent className="sm:max-w-[460px] [&_[data-slot=dialog-close]>svg]:text-red-600">
                 <DialogTitle className="sr-only">Approve Selected Leave Requests</DialogTitle>
 
@@ -347,9 +338,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}

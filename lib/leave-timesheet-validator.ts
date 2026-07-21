@@ -55,9 +55,10 @@ const monthlyTimesheetCache = new Map<string, MonthlyTimesheetData>();
  */
 async function getMonthlyTimesheetData(
   year: number,
-  month: number
+  month: number,
+  userId?: number | null
 ): Promise<MonthlyTimesheetData> {
-  const cacheKey = `${year}-${month}`;
+  const cacheKey = userId ? `${year}-${month}-${userId}` : `${year}-${month}`;
 
   // Return cached data if available
   if (monthlyTimesheetCache.has(cacheKey)) {
@@ -65,8 +66,10 @@ async function getMonthlyTimesheetData(
   }
 
   try {
+    const params: Record<string, any> = { year, month };
+    if (userId) params.userId = userId;
     const response = await apiClient.get(API_PATHS.MONTHLY_TIMESHEET, {
-      params: { year, month },
+      params,
     });
 
     // Handle both direct and wrapped response formats
@@ -114,12 +117,12 @@ export function isNonWorkingDay(date: Date): boolean {
  * param date - Date to check
  * returns true if it's a holiday
  */
-export async function isHoliday(date: Date): Promise<boolean> {
+export async function isHoliday(date: Date, userId?: number | null): Promise<boolean> {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const dateKey = format(date, DATE_FORMATS.API);
 
-  const monthlyData = await getMonthlyTimesheetData(year, month);
+  const monthlyData = await getMonthlyTimesheetData(year, month, userId);
   const dayData = monthlyData.days.find((d) => d.date === dateKey);
 
   return dayData?.isHoliday === true;
@@ -130,12 +133,12 @@ export async function isHoliday(date: Date): Promise<boolean> {
  * @param date - Date to check
  * @returns Total hours logged for that date
  */
-async function getTimesheetTotalHoursForDate(date: Date): Promise<number> {
+async function getTimesheetTotalHoursForDate(date: Date, userId?: number | null): Promise<number> {
   const year = date.getFullYear();
   const month = date.getMonth() + 1; // getMonth is 0-indexed
   const dateKey = format(date, DATE_FORMATS.API);
 
-  const monthlyData = await getMonthlyTimesheetData(year, month);
+  const monthlyData = await getMonthlyTimesheetData(year, month, userId);
 
   const dayData = monthlyData.days.find((d) => d.date === dateKey);
   const totalHours = dayData?.timesheet?.totalHours ?? 0;
@@ -153,9 +156,10 @@ async function getTimesheetTotalHoursForDate(date: Date): Promise<number> {
  */
 export function invalidateMonthlyTimesheetCache(
   year: number,
-  month: number
+  month: number,
+  userId?: number | null
 ): void {
-  const cacheKey = `${year}-${month}`;
+  const cacheKey = userId ? `${year}-${month}-${userId}` : `${year}-${month}`;
   monthlyTimesheetCache.delete(cacheKey);
 }
 
@@ -176,15 +180,18 @@ export function clearTimesheetCache(): void {
 export async function checkOverlappingLeaves(
   startDate: Date,
   endDate: Date,
-  durationType: "full_day" | "half_day"
+  durationType: "full_day" | "half_day",
+  userId?: number | null
 ): Promise<ConflictCheckResult> {
   try {
     const startDateStr = format(startDate, DATE_FORMATS.API);
     const endDateStr = format(endDate, DATE_FORMATS.API);
 
-    // Fetch ALL existing leave requests (backend may not support date filtering)
-    // We'll filter client-side for overlaps
-    const response = await apiClient.get(API_PATHS.LEAVES_REQUESTS_GET);
+    // Fetch existing leave requests
+    const endpoint = userId ? API_PATHS.LEAVES_TEAM_REQUESTS_GET : API_PATHS.LEAVES_REQUESTS_GET;
+    const response = await apiClient.get(endpoint, {
+      params: userId ? { userId } : {},
+    });
 
     // Handle wrapped or direct array response
     const leaves: LeaveRequest[] = Array.isArray(response.data)
@@ -193,8 +200,13 @@ export async function checkOverlappingLeaves(
       ? (response.data as { data: LeaveRequest[] }).data
       : [];
 
+    // Filter by userId client-side if userId is provided
+    const userFilteredLeaves = userId
+      ? leaves.filter((leave: any) => Number(leave.user?.id) === Number(userId))
+      : leaves;
+
     // Filter for approved or pending leaves that overlap with requested range
-    const overlappingLeaves = leaves.filter((leave: LeaveRequest) => {
+    const overlappingLeaves = userFilteredLeaves.filter((leave: LeaveRequest) => {
       const leaveStart = new Date(leave.startDate);
       const leaveEnd = new Date(leave.endDate);
       const requestStart = new Date(startDateStr);
@@ -296,7 +308,8 @@ export async function checkOverlappingLeaves(
 export async function checkLeaveConflictWithTimesheet(
   startDate: Date,
   endDate: Date,
-  durationType: "full_day" | "half_day"
+  durationType: "full_day" | "half_day",
+  userId?: number | null
 ): Promise<ConflictCheckResult> {
   try {
     const startDateStr = format(startDate, DATE_FORMATS.API);
@@ -306,7 +319,8 @@ export async function checkLeaveConflictWithTimesheet(
     const overlapResult = await checkOverlappingLeaves(
       startDate,
       endDate,
-      durationType
+      durationType,
+      userId
     );
     if (overlapResult.hasConflict) {
       return overlapResult;
@@ -322,7 +336,7 @@ export async function checkLeaveConflictWithTimesheet(
 
     // For single-day leaves, check that specific date
     if (startDateStr === endDateStr) {
-      const totalHours = await getTimesheetTotalHoursForDate(startDate);
+      const totalHours = await getTimesheetTotalHoursForDate(startDate, userId);
 
       // If timesheet exists
       if (totalHours > 0) {
@@ -361,7 +375,7 @@ export async function checkLeaveConflictWithTimesheet(
       const end = new Date(endDate);
 
       while (currentDate <= end) {
-        const totalHours = await getTimesheetTotalHoursForDate(currentDate);
+        const totalHours = await getTimesheetTotalHoursForDate(currentDate, userId);
 
         if (totalHours > 0) {
           return {
@@ -396,16 +410,19 @@ export async function checkLeaveConflictWithTimesheet(
  */
 export async function checkTimesheetConflictWithLeave(
   activityDate: Date,
-  totalHours: number
+  totalHours: number,
+  userId?: number | null
 ): Promise<ConflictCheckResult> {
   try {
     const dateStr = format(activityDate, DATE_FORMATS.API);
 
     // Fetch leave requests for the user
-    const response = await apiClient.get(API_PATHS.LEAVES_REQUESTS_GET, {
+    const endpoint = userId ? API_PATHS.LEAVES_TEAM_REQUESTS_GET : API_PATHS.LEAVES_REQUESTS_GET;
+    const response = await apiClient.get(endpoint, {
       params: {
         startDate: dateStr,
         endDate: dateStr,
+        ...(userId ? { userId } : {}),
       },
     });
 
@@ -497,7 +514,8 @@ export async function checkTimesheetConflictWithLeave(
  */
 export async function calculateLeaveDays(
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  userId?: number | null
 ): Promise<number> {
   let count = 0;
   const current = new Date(startDate.getTime());
@@ -507,7 +525,7 @@ export async function calculateLeaveDays(
 
   while (current <= end) {
     const isWeekend = isNonWorkingDay(current);
-    const isFixedHoliday = await isHoliday(current);
+    const isFixedHoliday = await isHoliday(current, userId);
     if (!isWeekend && !isFixedHoliday) {
       count++;
     }

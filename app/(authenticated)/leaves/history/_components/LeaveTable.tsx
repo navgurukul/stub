@@ -26,38 +26,7 @@ import { DATE_FORMATS, API_PATHS } from "@/lib/constants";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/lib/utils";
 import { LoadingState } from "./LoadingState";
-
-interface LeaveRequest {
-  id: number;
-  user: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  managerId: number;
-  leaveType: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  state: "pending" | "approved" | "rejected";
-  startDate: string;
-  endDate: string;
-  durationType: "full_day" | "half_day";
-  halfDaySegment: "first_half" | "second_half" | null;
-  hours: number;
-  requestedAt: string;
-  updatedAt: string;
-  decidedByUserId: number | null;
-}
-
-interface LeaveTableProps {
-  leaves: LeaveRequest[];
-  isLoading: boolean;
-  showEmployee?: boolean;
-  canDeleteApprovedRequests?: boolean;
-  onUpdate?: () => void;
-}
+import type { LeaveRequest, LeaveTableProps } from "@/lib/leave-types";
 
 // Helper function to format duration
 const formatDuration = (leave: LeaveRequest) => {

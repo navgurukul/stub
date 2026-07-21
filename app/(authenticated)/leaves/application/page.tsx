@@ -10,37 +10,12 @@ import { AppHeader } from "@/app/_components/AppHeader";
 import { PageWrapper } from "@/app/_components/wrapper";
 import {
   AllocatedLeavesTable,
-  type AllocatedLeave,
 } from "./_components/AllocatedLeavesTable";
 import { LeaveApplicationForm } from "./_components/LeaveApplicationForm";
 import apiClient from "@/lib/api-client";
 import { API_PATHS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
-
-// TypeScript interfaces for API response
-interface LeaveType {
-  id: number;
-  code: string;
-  name: string;
-  paid: boolean;
-  requiresApproval: boolean;
-}
-
-interface LeaveBalanceItem {
-  id: number;
-  leaveTypeId: number;
-  balanceHours: number;
-  pendingHours: number;
-  bookedHours: number;
-  allocatedHours: number;
-  asOfDate: string;
-  leaveType: LeaveType;
-}
-
-interface LeaveBalancesResponse {
-  userId: number;
-  balances: LeaveBalanceItem[];
-}
+import type { LeaveBalancesResponse, AllocatedLeave } from "@/lib/leave-types";
 
 export default function LeaveApplicationPage() {
   const { user, isLoading: authLoading } = useAuth();

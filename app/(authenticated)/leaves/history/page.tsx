@@ -24,31 +24,7 @@ import { columns } from "./_components/columns";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/hooks/use-role";
 import { ROLES } from "@/lib/rbac-constants";
-
-// TypeScript interfaces for API response
-interface LeaveRequest {
-  id: number;
-  user: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  managerId: number;
-  leaveType: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  state: "pending" | "approved" | "rejected";
-  startDate: string;
-  endDate: string;
-  durationType: "full_day" | "half_day";
-  halfDaySegment: "first_half" | "second_half" | null;
-  hours: number;
-  requestedAt: string;
-  updatedAt: string;
-  decidedByUserId: number | null;
-}
+import type { LeaveRequest } from "@/lib/leave-types";
 
 export default function LeaveHistoryPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>("all");

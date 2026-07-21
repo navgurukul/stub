@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Search, TreePalm, Clock, CheckCircle2, Calendar as CalendarIcon, X, Pencil, Plus, AlertCircle } from "lucide-react";
@@ -86,7 +85,19 @@ import {
   LeaveSummary,
   LeavesMainTab,
   PersistedLeavesState,
+  RawLeaveType,
 } from "@/lib/leave-types";
+import { LeaveBalanceTable } from "./_components/LeaveBalanceTable";
+import { LeaveHistoryTable } from "./_components/LeaveHistoryTable";
+import { AdminEmployeeLeaveHistoryTable } from "./_components/AdminEmployeeLeaveHistoryTable";
+import { AdminEmployeeLeaveBalanceTable } from "./_components/AdminEmployeeLeaveBalanceTable";
+import { TeamEmployeeLeaveBalanceTable } from "./_components/TeamEmployeeLeaveBalanceTable";
+import {
+  formatLeaveDaysValue,
+  isCompOffLeaveType,
+  getDisplayLeaveTypeName,
+  getLeaveCategory,
+} from "@/lib/leave-helpers";
 
 const getDashboardHighlightUrl = (dateApi: string) => {
   const normalized = dateApi.trim();
@@ -144,12 +155,7 @@ export default function LeavesPage() {
     useState(false);
   const leaveHistorySectionRef = useRef<HTMLDivElement | null>(null);
 
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");
-  const [historyFromDate, setHistoryFromDate] = useState<Date | undefined>();
-  const [historyToDate, setHistoryToDate] = useState<Date | undefined>();
-  const [leavesPage, setLeavesPage] = useState(1);
+
 
   const [teamSearch, setTeamSearch] = useState("");
   const [teamStatusFilter, setTeamStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
@@ -184,7 +190,7 @@ export default function LeavesPage() {
   const [adminEmployeeHistory, setAdminEmployeeHistory] = useState<
     TeamLeaveRequest[]
   >([]);
-  const [adminLeaveTypes, setAdminLeaveTypes] = useState<any[]>([]);
+  const [adminLeaveTypes, setAdminLeaveTypes] = useState<RawLeaveType[]>([]);
   const [adminLeaveDateRange, setAdminLeaveDateRange] = useState<DateRange | undefined>();
   const [isAdminDatePickerOpen, setIsAdminDatePickerOpen] = useState(false);
   const [adminLeaveValidationError, setAdminLeaveValidationError] = useState<string | null>(null);
@@ -197,21 +203,21 @@ export default function LeavesPage() {
       endDate: z.date({ message: "End date is required." }),
       durationType: z.string().min(1, "Please select a duration type."),
       halfDaySegment: z.string().optional(),
-      
+
       // Bereavement fields
       bereavementRelationship: z.string().optional(),
       bereavementRelationshipOther: z.string().optional(),
-      
+
       // Wedding fields
       weddingCardImage: z.any().optional(),
-      
+
       // Election fields
       voterIdImage: z.any().optional(),
-      
+
       // Exam / L&D fields
       examCourseName: z.string().optional(),
       examHallTicket: z.any().optional(),
-      
+
       // Vipassana fields
       vipassanaDocuments: z.array(z.any()).optional(),
     })
@@ -448,7 +454,8 @@ export default function LeavesPage() {
         const result = await checkLeaveConflictWithTimesheet(
           startDate,
           endDate,
-          durationType as "full_day" | "half_day"
+          durationType as "full_day" | "half_day",
+          adminApplyEmployeeUserId
         );
         if (result.hasConflict) {
           setAdminLeaveValidationError(result.message || "Conflict detected");
@@ -461,7 +468,7 @@ export default function LeavesPage() {
         setAdminLeaveIsValidating(false);
       }
     },
-    []
+    [adminApplyEmployeeUserId]
   );
 
   useEffect(() => {
@@ -528,7 +535,7 @@ export default function LeavesPage() {
 
   const durationTypes = mockDataService.getDurationTypes();
 
-  const leavesPageSize = 10;
+
 
   const handleViewLeaveHistory = useCallback(() => {
     setActiveMainTab("leaves");
@@ -891,8 +898,8 @@ export default function LeavesPage() {
       try {
         const res = await apiClient.get(API_PATHS.LEAVES_TYPES);
         const types = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-        const filteredTypes = types.filter(
-          (type: any) =>
+          const filteredTypes = types.filter(
+            (type: RawLeaveType) =>
             String(type?.code ?? "").trim().toUpperCase() !== "CPL" &&
             String(type?.name ?? "").trim().toLowerCase() !== "compensatory leave"
         );
@@ -940,7 +947,8 @@ export default function LeavesPage() {
         const conflict = await checkLeaveConflictWithTimesheet(
           values.startDate,
           values.endDate,
-          values.durationType as "full_day" | "half_day"
+          values.durationType as "full_day" | "half_day",
+          adminApplyEmployeeUserId
         );
         if (conflict.hasConflict) {
           toast.error("Conflict with timesheet entries", {
@@ -950,7 +958,11 @@ export default function LeavesPage() {
           return;
         }
 
-        const netDays = await calculateLeaveDays(values.startDate, values.endDate);
+        const netDays = await calculateLeaveDays(
+          values.startDate,
+          values.endDate,
+          adminApplyEmployeeUserId
+        );
         if (netDays === 0) {
           toast.error("Selected date range consists only of non-working days or holidays");
           setAdminApplyLeaveSubmitting(false);
@@ -1402,20 +1414,7 @@ export default function LeavesPage() {
     adminApplyEmployeeUserId,
   ]);
 
-  const visibleBalances = useMemo(() => {
-    return balances.filter((balance) => {
-      const leaveName = String(balance.leaveType?.name ?? "").trim().toLowerCase();
-      const leaveCode = String(balance.leaveType?.code ?? "").trim().toLowerCase();
 
-      const isCompensatoryLeave =
-        leaveName === "compensatory leave" ||
-        leaveCode === "compensatory_leave" ||
-        leaveCode === "compensatory-leave" ||
-        leaveCode === "compensatory";
-
-      return !isCompensatoryLeave;
-    });
-  }, [balances]);
 
   // Summary stats from balances API summary field
   const summaryStats = useMemo(() => ({
@@ -1425,46 +1424,7 @@ export default function LeavesPage() {
     approved: leaveSummary?.approved ?? 0,
   }), [leaveSummary]);
 
-  // Filtered leave requests
-  const filteredLeaves = useMemo(() => {
-    const effectiveFromDate =
-      historyFromDate && historyToDate
-        ? (historyFromDate <= historyToDate ? historyFromDate : historyToDate)
-        : historyFromDate;
-    const effectiveToDate =
-      historyFromDate && historyToDate
-        ? (historyFromDate <= historyToDate ? historyToDate : historyFromDate)
-        : historyToDate;
 
-    const fromStr = effectiveFromDate ? format(effectiveFromDate, "yyyy-MM-dd") : "";
-    const toStr = effectiveToDate ? format(effectiveToDate, "yyyy-MM-dd") : "";
-
-    return leaveHistory.filter((leave) => {
-      const matchesLeaveType =
-        leaveTypeFilter === "all" ||
-        String(leave.leaveType?.name ?? "").trim().toLowerCase() ===
-          leaveTypeFilter.trim().toLowerCase();
-      const matchesStatus = statusFilter === "all" || leave.state === statusFilter;
-      const matchesFrom = !fromStr || leave.endDate >= fromStr;
-      const matchesTo = !toStr || leave.startDate <= toStr;
-      return matchesLeaveType && matchesStatus && matchesFrom && matchesTo;
-    });
-  }, [leaveHistory, statusFilter, leaveTypeFilter, historyFromDate, historyToDate]);
-
-  const leavesTotal = filteredLeaves.length;
-  const leavesTotalPages = Math.max(1, Math.ceil(leavesTotal / leavesPageSize));
-  const paginatedLeaves = useMemo(() => {
-    const start = (leavesPage - 1) * leavesPageSize;
-    return filteredLeaves.slice(start, start + leavesPageSize);
-  }, [filteredLeaves, leavesPage, leavesPageSize]);
-
-  useEffect(() => {
-    setLeavesPage(1);
-  }, [filteredLeaves, leavesPageSize]);
-
-  useEffect(() => {
-    setLeavesPage((prev) => Math.min(prev, leavesTotalPages));
-  }, [leavesTotalPages]);
 
   const myReporteeTeamLeaves = useMemo(() => {
     if (!user?.id) return [] as TeamLeaveRequest[];
@@ -1516,8 +1476,11 @@ export default function LeavesPage() {
     return scopedTeamLeaves
       .map((leave) => String(leave.leaveType?.name ?? "").trim())
       .filter((name) => {
-        if (!name || seen.has(name)) return false;
-        seen.add(name);
+        if (!name) return false;
+        const normalized = name.toLowerCase();
+        if (normalized === "compensatory leave") return false;
+        if (seen.has(normalized)) return false;
+        seen.add(normalized);
         return true;
       })
       .sort((a, b) => a.localeCompare(b))
@@ -1537,8 +1500,11 @@ export default function LeavesPage() {
           teamStatusFilter === "all" || leave.state === teamStatusFilter;
         const matchesLeaveType =
           teamLeaveTypeFilter === "all" ||
-          String(leave.leaveType?.name ?? "").trim().toLowerCase() ===
-            teamLeaveTypeFilter.trim().toLowerCase();
+          (teamLeaveTypeFilter.toLowerCase() === "comp off"
+            ? (leave.leaveType?.name?.toLowerCase() === "comp off" ||
+              leave.leaveType?.name?.toLowerCase() === "compensatory leave")
+            : String(leave.leaveType?.name ?? "").trim().toLowerCase() ===
+            teamLeaveTypeFilter.trim().toLowerCase());
 
         return matchesSearch && matchesStatus && matchesLeaveType;
       })
@@ -1555,37 +1521,7 @@ export default function LeavesPage() {
     !isTeamLoading &&
     myReporteeTeamLeaves.length === 0;
 
-  // Sorted balances (casual/wellness first)
-  const sortedBalances = useMemo(() => {
-    const priority = ["casual leave", "wellness leave"];
-    return [...visibleBalances].sort((a, b) => {
-      const aKey = (a.leaveType?.name || "").toLowerCase();
-      const bKey = (b.leaveType?.name || "").toLowerCase();
-      const ai = priority.findIndex((p) => aKey.includes(p));
-      const bi = priority.findIndex((p) => bKey.includes(p));
-      return (
-        (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi) ||
-        aKey.localeCompare(bKey)
-      );
-    });
-  }, [visibleBalances]);
 
-  const leaveTypeOptions = useMemo(() => {
-    const seen = new Set<string>();
-    return sortedBalances
-      .map((balance) => {
-        const value = String(balance.leaveType?.name ?? "").trim();
-        return {
-          value,
-          label: getDisplayLeaveTypeName(value),
-        };
-      })
-      .filter((option) => {
-        if (!option.value || seen.has(option.value)) return false;
-        seen.add(option.value);
-        return true;
-      });
-  }, [sortedBalances]);
 
   const sortedTeamEmployeeBalances = useMemo(() => {
     const priority = ["casual leave", "wellness leave"];
@@ -1614,30 +1550,7 @@ export default function LeavesPage() {
       });
   }, [teamEmployeeBalances]);
 
-  const formatLeaveDaysValue = (days: number) => {
-    const normalized = Math.round((days + Number.EPSILON) * 100) / 100;
-    return Number.isInteger(normalized)
-      ? String(normalized)
-      : String(normalized)
-        .replace(/\.0+$/, "")
-        .replace(/(\.\d*[1-9])0+$/, "$1");
-  };
 
-  const formatDays = (leave: LeaveRequest) => {
-    const days = leave.hours / 8;
-    return `${formatLeaveDaysValue(days)}d`;
-  };
-
-  const formatTeamLeaveDuration = (leave: TeamLeaveRequest) => {
-    if (leave.durationType === "half_day") {
-      const segment =
-        leave.halfDaySegment === "first_half" ? "First Half" : "Second Half";
-      return `Half Day (${segment})`;
-    }
-
-    const days = leave.hours / 8;
-    return `${formatLeaveDaysValue(days)} ${days === 1 ? "day" : "days"}`;
-  };
 
   const sortedAdminEmployeeBalances = useMemo(() => {
     const priority = ["casual leave", "wellness leave"];
@@ -1670,77 +1583,8 @@ export default function LeavesPage() {
       });
   }, [adminEmployeeBalances]);
 
-  const hasFilters =
-    statusFilter !== "all" || leaveTypeFilter !== "all" || historyFromDate || historyToDate;
 
-  const clearFilters = () => {
-    setStatusFilter("all");
-    setLeaveTypeFilter("all");
-    setHistoryFromDate(undefined);
-    setHistoryToDate(undefined);
-  };
 
-  const getStatusBadge = (state: string) => {
-    const configs = {
-      pending: { dot: "bg-amber-400", text: "text-amber-700", bg: "bg-amber-50 border-amber-200", label: "Pending" },
-      approved: { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", label: "Approved" },
-      rejected: { dot: "bg-red-400", text: "text-red-700", bg: "bg-red-50 border-red-200", label: "Declined" },
-    };
-    const c = configs[state as keyof typeof configs] ?? configs.rejected;
-    return (
-      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium", c.bg, c.text)}>
-        <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
-        {c.label}
-      </span>
-    );
-  };
-
-  function getDisplayLeaveTypeName(name: string) {
-    const normalizedName = name.trim().toLowerCase();
-    if (normalizedName === "comp off") {
-      return "Compensatory Leave";
-    }
-    return name;
-  }
-
-  function isCompOffLeaveType(leaveType?: { name?: string; code?: string }) {
-    const normalizedName = String(leaveType?.name ?? "").trim().toLowerCase();
-    const normalizedCode = String(leaveType?.code ?? "").trim().toLowerCase();
-
-    return (
-      normalizedName === "comp off" ||
-      normalizedName === "compensatory leave" ||
-      normalizedCode === "compensatory_leave" ||
-      normalizedCode === "compensatory-leave" ||
-      normalizedCode === "compensatory"
-    );
-  }
-
-  const getLeaveCategory = (leaveCode?: string, leaveName?: string) => {
-    const normalizedCode = String(leaveCode ?? "")
-      .trim()
-      .toUpperCase();
-    const normalizedName = String(leaveName ?? "")
-      .trim()
-      .toLowerCase();
-
-    const isEarnedLeave =
-      normalizedCode === "CL" ||
-      normalizedCode === "WL" ||
-      normalizedName === "comp off" ||
-      normalizedName === "casual leave" ||
-      normalizedName === "wellness leave";
-
-    return isEarnedLeave
-      ? {
-          label: "Earned Leave",
-          className: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        }
-      : {
-          label: "Special Leave",
-          className: "bg-amber-50 text-amber-700 border-amber-200",
-        };
-  };
 
   const currentYear = new Date().getFullYear();
   const fyLabel = `FY ${currentYear - 1}–${String(currentYear).slice(-2)}`;
@@ -1966,330 +1810,24 @@ export default function LeavesPage() {
               </div>
 
               {/* Leave Balance */}
-              <div className="rounded-lg border border-border overflow-hidden bg-background">
-                <div className="px-4 py-3 border-b border-border bg-secondary-background flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-foreground">Leave Balance</span>
-                  {!isBalancesLoading && (
-                    <span className="text-xs text-muted-foreground">
-                      {sortedBalances.length} {sortedBalances.length === 1 ? "record" : "records"}
-                    </span>
-                  )}
-                </div>
-                {isBalancesLoading ? (
-                  <div className="p-5 space-y-4">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="h-8 bg-secondary-background rounded animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="w-full text-sm min-w-[640px]">
-                      <TableHeader>
-                        <TableRow className="border-b border-border bg-secondary-background">
-                          <TableHead className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Leave Type</TableHead>
-                          <TableHead className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Allocated</TableHead>
-                          <TableHead className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pending</TableHead>
-                          <TableHead className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Approved</TableHead>
-                          <TableHead className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Remaining</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {sortedBalances.length === 0 ? (
-                            <TableRow>
-                            <TableCell colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                              No leave balance found.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          sortedBalances.map((balance) => {
-                            const allocated = balance.allocatedHours / 8;
-                            const pending = balance.pendingHours / 8;
-                            const approved = balance.bookedHours / 8;
-                            const remaining = balance.balanceHours / 8;
-                            const isCompOffLeave = isCompOffLeaveType(balance.leaveType);
-                            const remainingTone =
-                              remaining <= 0
-                                ? "bg-red-50 text-red-700 border-red-200"
-                                : remaining <= 2
-                                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                                  : "bg-emerald-50 text-emerald-700 border-emerald-200";
-
-                            return (
-                              <TableRow key={balance.id} className="border-b border-border last:border-0 hover:bg-secondary-background/50 transition-colors">
-                                <TableCell className="px-4 py-3.5 font-medium text-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <span>{getDisplayLeaveTypeName(balance.leaveType.name)}</span>
-                                    <span
-                                      className={cn(
-                                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                                        getLeaveCategory(balance.leaveType.code, balance.leaveType.name).className
-                                      )}
-                                    >
-                                      {getLeaveCategory(balance.leaveType.code, balance.leaveType.name).label}
-                                    </span>
-                                    {isCompOffLeave && (
-                                      <Link href="/compoff" className="text-xs font-medium text-primary underline-offset-2 hover:underline ml-2">
-                                        View details
-                                      </Link>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="px-4 py-3.5 text-center tabular-nums text-foreground">
-                                  {formatLeaveDaysValue(allocated)}
-                                </TableCell>
-                                <TableCell className="px-4 py-3.5 text-center tabular-nums text-foreground">
-                                  {formatLeaveDaysValue(pending)}
-                                </TableCell>
-                                <TableCell className="px-4 py-3.5 text-center tabular-nums text-foreground">
-                                  {formatLeaveDaysValue(approved)}
-                                </TableCell>
-                                <TableCell className="px-4 py-3.5 text-center tabular-nums font-semibold">
-                                    <span className={cn("inline-flex min-w-[3rem] items-center justify-center rounded-md border px-2 py-1", remainingTone)}>
-                                      {formatLeaveDaysValue(remaining)}
-                                    </span>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
+              <LeaveBalanceTable balances={balances} isLoading={isBalancesLoading} />
 
               {/* Leave History */}
-              <div ref={leaveHistorySectionRef} className="rounded-lg border border-border overflow-hidden bg-background">
-                <div className="px-4 py-3 border-b border-border bg-secondary-background flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-foreground">Leave History</span>
-                  {!isLoading && (
-                    <span className="text-xs text-muted-foreground">
-                      {filteredLeaves.length} {filteredLeaves.length === 1 ? "record" : "records"}
-                    </span>
-                  )}
-                </div>
-
-                <div className="px-4 py-4 border-b border-border flex flex-wrap items-center gap-2">
-                  <Select value={leaveTypeFilter} onValueChange={setLeaveTypeFilter}>
-                    <SelectTrigger className="h-9 w-[170px] bg-background text-foreground border-border text-sm font-base">
-                      <SelectValue placeholder="All Leave Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Leave Types</SelectItem>
-                      {leaveTypeOptions.map((leaveType) => (
-                        <SelectItem key={leaveType.value} value={leaveType.value}>
-                          {leaveType.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex flex-wrap items-center gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "h-9 min-w-[170px] justify-start text-sm font-base",
-                              !historyFromDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                            {historyFromDate
-                              ? `From: ${format(historyFromDate, "d MMM yyyy")}`
-                              : "From"}
-                            {historyFromDate && (
-                              <span
-                                role="button"
-                                className="ml-auto h-4 w-4 rounded-full flex items-center justify-center hover:bg-secondary-background"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setHistoryFromDate(undefined);
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 border-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={historyFromDate}
-                            onSelect={setHistoryFromDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "h-9 min-w-[170px] justify-start text-sm font-base",
-                              !historyToDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                            {historyToDate
-                              ? `To: ${format(historyToDate, "d MMM yyyy")}`
-                              : "To"}
-                            {historyToDate && (
-                              <span
-                                role="button"
-                                className="ml-auto h-4 w-4 rounded-full flex items-center justify-center hover:bg-secondary-background"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setHistoryToDate(undefined);
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 border-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={historyToDate}
-                            onSelect={setHistoryToDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                  </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="h-9 w-[130px] bg-background text-foreground border-border text-sm font-base">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Declined</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {hasFilters && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 gap-1.5 text-muted-foreground hover:text-foreground"
-                      onClick={clearFilters}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                      Clear all
-                    </Button>
-                  )}
-                </div>
-
-                <div className="overflow-x-auto">
-                  <Table className="w-full text-sm min-w-[600px]">
-                    <TableHeader>
-                      <TableRow className="border-b border-border">
-                        <TableHead className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">#</TableHead>
-                        <TableHead className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</TableHead>
-                        <TableHead className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</TableHead>
-                        <TableHead className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Duration</TableHead>
-                        <TableHead className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading ? (
-                        Array.from({ length: 5 }).map((_, i) => (
-                          <TableRow key={i} className="border-b border-border last:border-0">
-                            {Array.from({ length: 6 }).map((_, j) => (
-                              <TableCell key={j} className="px-4 py-3.5">
-                                <div className="h-4 bg-secondary-background rounded animate-pulse" style={{ width: `${60 + Math.random() * 30}%` }} />
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))
-                      ) : filteredLeaves.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="px-4 py-12 text-center">
-                            <div className="flex flex-col items-center gap-2">
-                              <TreePalm className="h-8 w-8 text-muted-foreground/40" />
-                              <p className="text-sm text-muted-foreground">No leave records found</p>
-                              {hasFilters && (
-                                <button onClick={clearFilters} className="text-xs text-foreground underline underline-offset-2">
-                                  Clear filters
-                                </button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        paginatedLeaves.map((leave, idx) => (
-                          <TableRow
-                            key={leave.id}
-                            className="border-b border-border last:border-0 hover:bg-secondary-background/60 transition-colors"
-                          >
-                            <TableCell className="px-4 py-3.5 text-xs text-muted-foreground tabular-nums">
-                              {(leavesPage - 1) * leavesPageSize + idx + 1}
-                            </TableCell>
-                            <TableCell className="px-4 py-3.5">
-                              <span className="font-medium text-foreground">{getDisplayLeaveTypeName(leave.leaveType.name)}</span>
-                            </TableCell>
-                            <TableCell className="px-4 py-3.5 text-foreground">
-                              <span>{format(parseISO(leave.startDate), "d MMM yyyy")}</span>
-                              {leave.startDate !== leave.endDate && (
-                                <>
-                                  <span className="mx-1.5 text-muted-foreground">→</span>
-                                  <span>{format(parseISO(leave.endDate), "d MMM yyyy")}</span>
-                                </>
-                              )}
-                            </TableCell>
-                            <TableCell className="px-4 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[2.5rem] rounded-md bg-secondary-background border border-border px-2 py-0.5 text-xs font-semibold text-foreground tabular-nums">
-                                {formatDays(leave)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="px-4 py-3.5 text-right">
-                              {getStatusBadge(leave.state)}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-                {!isLoading && filteredLeaves.length > 0 && leavesTotalPages > 1 && (
-                  <div className="px-4 py-3 border-t border-border bg-secondary-background flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="text-xs text-muted-foreground">
-                      Showing {(leavesPage - 1) * leavesPageSize + 1}-
-                      {Math.min(leavesPage * leavesPageSize, leavesTotal)} of {leavesTotal}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setLeavesPage((p) => Math.max(1, p - 1))}
-                        disabled={leavesPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setLeavesPage((p) => Math.min(leavesTotalPages, p + 1))}
-                        disabled={leavesPage === leavesTotalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
+              <div ref={leaveHistorySectionRef}>
+                <LeaveHistoryTable
+                  leaveHistory={leaveHistory}
+                  isLoading={isLoading}
+                  balances={balances}
+                />
               </div>
             </TabsContent>
 
             {/* ── TEAM MANAGEMENT TABS ── */}
             {canUseLeaveSearch && (
-            <TabsContent
-              value={activeMainTab === "all_org" ? "all_org" : "my_reportees"}
-              className="mt-0"
-            >
+              <TabsContent
+                value={activeMainTab === "all_org" ? "all_org" : "my_reportees"}
+                className="mt-0"
+              >
                 {canUseLeaveSearch && activeMainTab === "my_reportees" && isTeamEmployeeBalanceView && showTeamEmployeeBalanceSearch && (
                   <div className="mb-4 rounded-lg border border-border bg-background p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
@@ -2338,103 +1876,16 @@ export default function LeavesPage() {
                     )}
 
                     {selectedTeamEmployeeEmail && (
-                      <div className="mt-3 overflow-x-auto rounded-md border border-border">
-                        <Table className="w-full text-sm min-w-[640px]">
-                          <TableHeader>
-                            <TableRow className="border-b border-border bg-secondary-background">
-                              <TableHead className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Leave Type</TableHead>
-                              <TableHead className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Allocated</TableHead>
-                              <TableHead className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Available</TableHead>
-                              <TableHead className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pending</TableHead>
-                              <TableHead className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Approved</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {sortedTeamEmployeeBalances.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">
-                                  No leave balance found for this employee.
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              sortedTeamEmployeeBalances.map((balance) => (
-                                <TableRow key={balance.id} className="border-b border-border last:border-0">
-                                  <TableCell className="px-4 py-3 font-medium text-foreground">
-                                    <div className="flex items-center gap-2">
-                                      <span>{getDisplayLeaveTypeName(balance.leaveType.name)}</span>
-                                      <span
-                                        className={cn(
-                                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                                          getLeaveCategory(balance.leaveType.code, balance.leaveType.name).className
-                                        )}
-                                      >
-                                        {getLeaveCategory(balance.leaveType.code, balance.leaveType.name).label}
-                                      </span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="px-4 py-3 text-center tabular-nums">
-                                    {editingAllocatedBalance?.id === balance.id ? (
-                                      <div className="flex items-center justify-center gap-1">
-                                        <Input
-                                          type="number"
-                                          inputMode="decimal"
-                                          step="0.5"
-                                          min="0"
-                                          value={editingAllocatedHours}
-                                          onChange={(e) => setEditingAllocatedHours(e.target.value)}
-                                          className="h-7 w-16 text-center text-sm"
-                                          disabled={isUpdatingAllocated}
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); void handleUpdateAllocatedBalance(); }}
-                                          disabled={isUpdatingAllocated}
-                                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50"
-                                          title="Confirm"
-                                        >
-                                          <CheckCircle2 className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); setEditingAllocatedBalance(null); setEditingAllocatedHours(""); }}
-                                          disabled={isUpdatingAllocated}
-                                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                                          title="Cancel"
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center justify-center gap-2">
-                                        <span>{formatLeaveDaysValue(balance.allocatedHours / 8)}</span>
-                                        {canEditTeamPendingRequests && !isCompOffLeaveType(balance.leaveType) && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); setEditingAllocatedBalance(balance); setEditingAllocatedHours(String(balance.allocatedHours / 8)); }}
-                                            className="p-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
-                                            title="Edit allocated balance"
-                                          >
-                                            <Pencil className="h-4 w-4" />
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="px-4 py-3 text-center tabular-nums">
-                                    {formatLeaveDaysValue(balance.balanceHours / 8)}
-                                  </TableCell>
-                                  <TableCell className="px-4 py-3 text-center tabular-nums">
-                                    {formatLeaveDaysValue(balance.pendingHours / 8)}
-                                  </TableCell>
-                                  <TableCell className="px-4 py-3 text-center tabular-nums">
-                                    {formatLeaveDaysValue(balance.bookedHours / 8)}
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
+                      <TeamEmployeeLeaveBalanceTable
+                        sortedTeamEmployeeBalances={sortedTeamEmployeeBalances}
+                        editingAllocatedBalance={editingAllocatedBalance}
+                        editingAllocatedHours={editingAllocatedHours}
+                        isUpdatingAllocated={isUpdatingAllocated}
+                        canEditTeamPendingRequests={canEditTeamPendingRequests}
+                        setEditingAllocatedHours={setEditingAllocatedHours}
+                        setEditingAllocatedBalance={setEditingAllocatedBalance}
+                        handleUpdateAllocatedBalance={handleUpdateAllocatedBalance}
+                      />
                     )}
                   </div>
                 )}
@@ -2505,7 +1956,7 @@ export default function LeavesPage() {
                     />
                   )}
                 </div>
-            </TabsContent>
+              </TabsContent>
             )}
           </Tabs>
         </div>
@@ -2608,117 +2059,16 @@ export default function LeavesPage() {
                         </div>
                       ) : (
                         <>
-                          <div className="rounded-lg border border-border bg-background overflow-hidden">
-                            <div className="px-3 py-2 border-b border-border bg-secondary-background">
-                              <span className="text-sm font-medium text-foreground">Leave Balance</span>
-                            </div>
-                            <div className="overflow-x-auto">
-                              <Table className="w-full min-w-[420px] text-sm">
-                                <TableHeader>
-                                  <TableRow className="border-b border-border bg-secondary-background">
-                                    <TableHead className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Leave Type</TableHead>
-                                    <TableHead className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Allocated</TableHead>
-                                    <TableHead className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pending</TableHead>
-                                    <TableHead className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Taken</TableHead>
-                                    <TableHead className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Remaining</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {sortedAdminEmployeeBalances.length === 0 ? (
-                                    <TableRow>
-                                      <TableCell colSpan={5} className="px-3 py-4 text-center text-sm text-muted-foreground">
-                                        No leave balance found for this employee.
-                                      </TableCell>
-                                    </TableRow>
-                                  ) : (
-                                    sortedAdminEmployeeBalances.map((balance) => {
-                                      const allocated = balance.allocatedHours / 8;
-                                      const pending = balance.pendingHours / 8;
-                                      const taken = balance.bookedHours / 8;
-                                      const remaining = balance.balanceHours / 8;
-                                      const remainingTone =
-                                        remaining <= 0
-                                          ? "text-red-600"
-                                          : remaining <= 2
-                                            ? "text-amber-600"
-                                            : "text-emerald-600";
-
-                                      return (
-                                        <TableRow key={balance.id} className="border-b border-border last:border-0">
-                                          <TableCell className="px-3 py-2.5 font-medium text-foreground">
-                                            <div className="flex items-center gap-2">
-                                              <span>{getDisplayLeaveTypeName(balance.leaveType.name)}</span>
-                                              <span
-                                                className={cn(
-                                                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                                                  getLeaveCategory(balance.leaveType.code, balance.leaveType.name).className
-                                                )}
-                                              >
-                                                {getLeaveCategory(balance.leaveType.code, balance.leaveType.name).label}
-                                              </span>
-                                            </div>
-                                          </TableCell>
-                                          <TableCell className="px-3 py-2.5 text-center tabular-nums">
-                                            {editingAllocatedBalance?.id === balance.id ? (
-                                              <div className="flex items-center justify-center gap-1">
-                                                <Input
-                                                  type="number"
-                                                  inputMode="decimal"
-                                                  step="0.5"
-                                                  min="0"
-                                                  value={editingAllocatedHours}
-                                                  onChange={(e) => setEditingAllocatedHours(e.target.value)}
-                                                  className="h-7 w-16 text-center text-sm"
-                                                  disabled={isUpdatingAllocated}
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => { e.stopPropagation(); void handleUpdateAllocatedBalance(); }}
-                                                  disabled={isUpdatingAllocated}
-                                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50"
-                                                  title="Confirm"
-                                                >
-                                                  <CheckCircle2 className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => { e.stopPropagation(); setEditingAllocatedBalance(null); setEditingAllocatedHours(""); }}
-                                                  disabled={isUpdatingAllocated}
-                                                  className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                                                  title="Cancel"
-                                                >
-                                                  <X className="h-4 w-4" />
-                                                </button>
-                                              </div>
-                                            ) : (
-                                              <div className="flex items-center justify-center gap-2">
-                                                <span>{formatLeaveDaysValue(allocated)}</span>
-                                                {canEditTeamPendingRequests && !isCompOffLeaveType(balance.leaveType) && (
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => { e.stopPropagation(); setEditingAllocatedBalance(balance); setEditingAllocatedHours(String(balance.allocatedHours / 8)); }}
-                                                    className="p-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
-                                                    title="Edit allocated balance"
-                                                  >
-                                                    <Pencil className="h-4 w-4" />
-                                                  </button>
-                                                )}
-                                              </div>
-                                            )}
-                                          </TableCell>
-                                          <TableCell className="px-3 py-2.5 text-center tabular-nums">{formatLeaveDaysValue(pending)}</TableCell>
-                                          <TableCell className="px-3 py-2.5 text-center tabular-nums">{formatLeaveDaysValue(taken)}</TableCell>
-                                          <TableCell className={cn("px-3 py-2.5 text-center tabular-nums font-semibold", remainingTone)}>
-                                            {formatLeaveDaysValue(remaining)}
-                                          </TableCell>
-                                        </TableRow>
-                                      );
-                                    })
-                                  )}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </div>
+                          <AdminEmployeeLeaveBalanceTable
+                            sortedAdminEmployeeBalances={sortedAdminEmployeeBalances}
+                            editingAllocatedBalance={editingAllocatedBalance}
+                            editingAllocatedHours={editingAllocatedHours}
+                            isUpdatingAllocated={isUpdatingAllocated}
+                            canEditTeamPendingRequests={canEditTeamPendingRequests}
+                            setEditingAllocatedHours={setEditingAllocatedHours}
+                            setEditingAllocatedBalance={setEditingAllocatedBalance}
+                            handleUpdateAllocatedBalance={handleUpdateAllocatedBalance}
+                          />
 
                           <div id="admin-apply-leave-form" className="space-y-4 rounded-lg border border-border bg-background p-4 md:p-5">
                             <p className="text-sm font-semibold text-foreground">Apply Leave</p>
@@ -2884,50 +2234,50 @@ export default function LeavesPage() {
                                 />
 
                                 <FormField
-                                   control={adminApplyLeaveForm.control}
-                                   name="examHallTicket"
-                                   render={({ field, fieldState }) => (
-                                     <FormItem>
-                                       <FormControl>
-                                         <FileUploadField
-                                           label="Upload the hall ticket or exam schedule image with the university’s letterhead"
-                                           accept="image/*,application/pdf"
-                                           value={field.value}
-                                           onChange={(val) => {
-                                             field.onChange(val);
-                                           }}
-                                           error={fieldState.error?.message}
-                                         />
-                                       </FormControl>
-                                       <FormMessage className="text-red-500" />
-                                     </FormItem>
-                                   )}
-                                 />
+                                  control={adminApplyLeaveForm.control}
+                                  name="examHallTicket"
+                                  render={({ field, fieldState }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <FileUploadField
+                                          label="Upload the hall ticket or exam schedule image with the university’s letterhead"
+                                          accept="image/*,application/pdf"
+                                          value={field.value}
+                                          onChange={(val) => {
+                                            field.onChange(val);
+                                          }}
+                                          error={fieldState.error?.message}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
                               </div>
                             )}
 
-                             {/* Conditional L&D Fields */}
-                             {isAdminLAndD && (
-                               <div className="space-y-4 border-primary/20 py-1">
-                                 <FormField
-                                   control={adminApplyLeaveForm.control}
-                                   name="examCourseName"
-                                   render={({ field }) => (
-                                     <FormItem>
-                                       <FormLabel>Learning program, course, workshop, or event name</FormLabel>
-                                       <FormControl>
-                                         <Input
-                                           placeholder="Enter learning program, course, workshop, or event name"
-                                           {...field}
-                                           value={field.value || ""}
-                                         />
-                                       </FormControl>
-                                       <FormMessage className="text-red-500" />
-                                     </FormItem>
-                                   )}
-                                 />
-                               </div>
-                             )}
+                            {/* Conditional L&D Fields */}
+                            {isAdminLAndD && (
+                              <div className="space-y-4 border-primary/20 py-1">
+                                <FormField
+                                  control={adminApplyLeaveForm.control}
+                                  name="examCourseName"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Learning program, course, workshop, or event name</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="Enter learning program, course, workshop, or event name"
+                                          {...field}
+                                          value={field.value || ""}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-red-500" />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            )}
 
                             {/* Conditional Vipassana Fields */}
                             {(isAdminVipassanaCourse || isAdminVipassanaSeva) && (
@@ -2974,8 +2324,8 @@ export default function LeavesPage() {
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {adminLeaveDateRange?.from ? (
                                           isAdminElection ||
-                                          !adminLeaveDateRange.to ||
-                                          format(adminLeaveDateRange.from, DATE_FORMATS.DISPLAY) ===
+                                            !adminLeaveDateRange.to ||
+                                            format(adminLeaveDateRange.from, DATE_FORMATS.DISPLAY) ===
                                             format(adminLeaveDateRange.to, DATE_FORMATS.DISPLAY) ? (
                                             format(adminLeaveDateRange.from, DATE_FORMATS.DISPLAY)
                                           ) : (
@@ -3126,52 +2476,7 @@ export default function LeavesPage() {
                             </div>
                           </div>
 
-                          <div className="rounded-lg border border-border bg-background overflow-hidden">
-                            <div className="px-3 py-2 border-b border-border bg-secondary-background">
-                              <span className="text-sm font-medium text-foreground">Leave History</span>
-                            </div>
-                            <div className="overflow-x-auto">
-                              <Table className="w-full min-w-[420px] text-sm">
-                                <TableHeader>
-                                  <TableRow className="border-b border-border bg-secondary-background">
-                                    <TableHead className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</TableHead>
-                                    <TableHead className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</TableHead>
-                                    <TableHead className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Duration</TableHead>
-                                    <TableHead className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {adminEmployeeHistory.length === 0 ? (
-                                    <TableRow>
-                                      <TableCell colSpan={4} className="px-3 py-4 text-center text-sm text-muted-foreground">
-                                        No leave history found for this employee.
-                                      </TableCell>
-                                    </TableRow>
-                                  ) : (
-                                    adminEmployeeHistory.map((leave) => {
-                                      const start = parseISO(leave.startDate);
-                                      const end = parseISO(leave.endDate);
-                                      const period =
-                                        leave.startDate === leave.endDate
-                                          ? format(start, "d MMM")
-                                          : `${format(start, "d MMM")} - ${format(end, "d MMM")}`;
-
-                                      return (
-                                        <TableRow key={leave.id} className="border-b border-border last:border-0">
-                                          <TableCell className="px-3 py-2.5 font-medium text-foreground">
-                                            {getDisplayLeaveTypeName(leave.leaveType?.name ?? "-")}
-                                          </TableCell>
-                                          <TableCell className="px-3 py-2.5 text-muted-foreground">{period}</TableCell>
-                                          <TableCell className="px-3 py-2.5 text-foreground">{formatTeamLeaveDuration(leave)}</TableCell>
-                                          <TableCell className="px-3 py-2.5">{getStatusBadge(leave.state)}</TableCell>
-                                        </TableRow>
-                                      );
-                                    })
-                                  )}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </div>
+                          <AdminEmployeeLeaveHistoryTable adminEmployeeHistory={adminEmployeeHistory} />
                         </>
                       )}
                     </div>

@@ -5,5 +5,6 @@
 
 export { LeaveTable } from "./LeaveTable";
 export { LoadingState } from "./LoadingState";
-export { columns, type LeaveRequest } from "./columns";
+export { columns } from "./columns";
+export type { LeaveRequest } from "@/lib/leave-types";
 export { DataTable } from "./data-table";

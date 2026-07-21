@@ -14,6 +14,12 @@ export interface RawLeaveBalance {
   leaveType?: RawLeaveType;
 }
 
+export interface LeaveTypeOption {
+  id: number;
+  name: string;
+  code?: string;
+}
+
 export interface LeaveTypeWithBalance {
   id: number;
   code: string;
@@ -60,6 +66,11 @@ export interface LeaveBalanceItem {
   };
 }
 
+export interface LeaveBalancesResponse {
+  userId: number;
+  balances: LeaveBalanceItem[];
+}
+
 export interface LeaveSummary {
   availableEarnedLeaves: number;
   totalAllocatedEarnedLeaves: number;
@@ -89,6 +100,64 @@ export interface NewLeaveRequestDialogProps {
   onSuccess: (submittedDate: string) => void;
   forceOpen?: boolean;
   prefilledDate?: string;
+}
+
+export interface LeaveTableProps {
+  leaves: LeaveRequest[];
+  isLoading: boolean;
+  showEmployee?: boolean;
+  canDeleteApprovedRequests?: boolean;
+  onUpdate?: () => void;
+}
+
+export interface LeaveBalanceTableProps {
+  balances: LeaveBalanceItem[];
+  isLoading: boolean;
+}
+
+export interface LeaveHistoryTableProps {
+  leaveHistory: LeaveRequest[];
+  isLoading: boolean;
+  balances: LeaveBalanceItem[];
+}
+
+export interface AdminEmployeeLeaveBalanceTableProps {
+  sortedAdminEmployeeBalances: LeaveBalanceItem[];
+  editingAllocatedBalance: LeaveBalanceItem | null;
+  editingAllocatedHours: string;
+  isUpdatingAllocated: boolean;
+  canEditTeamPendingRequests: boolean;
+  setEditingAllocatedHours: (value: string) => void;
+  setEditingAllocatedBalance: (value: LeaveBalanceItem | null) => void;
+  handleUpdateAllocatedBalance: () => Promise<void>;
+}
+
+export interface AdminEmployeeLeaveHistoryTableProps {
+  adminEmployeeHistory: LeaveRequest[];
+}
+
+export interface TeamEmployeeLeaveBalanceTableProps {
+  sortedTeamEmployeeBalances: LeaveBalanceItem[];
+  editingAllocatedBalance: LeaveBalanceItem | null;
+  editingAllocatedHours: string;
+  isUpdatingAllocated: boolean;
+  canEditTeamPendingRequests: boolean;
+  setEditingAllocatedHours: (value: string) => void;
+  setEditingAllocatedBalance: (value: LeaveBalanceItem | null) => void;
+  handleUpdateAllocatedBalance: () => Promise<void>;
+}
+
+export interface AllocatedLeave {
+  leaveType: string;
+  balance: number;
+  booked: number;
+  pending: number;
+  allocated: number;
+}
+
+export interface AllocatedLeavesTableProps {
+  leaves: AllocatedLeave[];
+  isLoading?: boolean;
 }
 
 

@@ -4,7 +4,7 @@
  * This data will be replaced with actual API calls in production.
  */
 
-import { AllocatedLeave } from "@/app/(authenticated)/leaves/application/_components/AllocatedLeavesTable";
+import type { AllocatedLeave } from "@/lib/leave-types";
 
 // =============================================================================
 // User Mock Data

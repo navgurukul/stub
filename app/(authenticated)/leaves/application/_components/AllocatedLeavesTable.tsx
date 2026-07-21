@@ -9,19 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LoadingState } from "./LoadingState";
-
-export interface AllocatedLeave {
-  leaveType: string;
-  balance: number;
-  booked: number;
-  pending: number;
-  allocated: number;
-}
-
-interface AllocatedLeavesTableProps {
-  leaves: AllocatedLeave[];
-  isLoading?: boolean;
-}
+import type { AllocatedLeave, AllocatedLeavesTableProps } from "@/lib/leave-types";
 
 export function AllocatedLeavesTable({ leaves, isLoading = false }: AllocatedLeavesTableProps) {
   if (isLoading) {
