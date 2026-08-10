@@ -48,6 +48,7 @@ export const API_PATHS = {
   LEAVES_ADMIN_APPLY: "/v1/leaves/admin/apply",
   EMPLOYEES: "/v1/users",
   MANAGERS: "/v1/users/managers",
+  MANAGERS_WITH_REPORTEES: "/v1/users/managers-with-reportees",
   SYNC_GOOGLE_SHEET: "/v1/users/sync/google-sheet",
   COMPOFF_MY: "/v1/leaves/my-comp-offs",
   COMPOFF_ALL: "/v1/leaves/comp-offs",
@@ -56,6 +57,9 @@ export const API_PATHS = {
   PROJECTS: "/v1/projects",
   DEPARTMENTS: "/v1/departments",
   SALARY_SUMMARY: "/v1/timesheets/salary-summary",
+  USERS_ROLE: "/v1/users/role",
+  ADMIN_USER_ROLE: "/v1/admin/users/{userId}/role",
+  AUDIT_LOGS: "/v1/audit/logs",
 } as const;
 
 export type ApiPathKey = keyof typeof API_PATHS;

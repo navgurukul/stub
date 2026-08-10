@@ -47,18 +47,24 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import apiClient from "@/lib/api-client";
 import { API_PATHS, DATE_FORMATS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
-import type { Project } from "./ProjectsTable";
+import type { Project, Department, Manager, NewProjectSheetProps } from "@/lib/project-types";
 
 const PROJECT_STATUS_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
-  { value: "completed", label: "Completed" },
-  { value: "on_hold", label: "On Hold" },
 ] as const;
 
 const formSchema = z
@@ -101,25 +107,6 @@ const formSchema = z
     }
   );
 
-interface Department {
-  id: number;
-  name: string;
-  code: string;
-}
-
-interface Manager {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface NewProjectSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
-  initialProject?: Partial<Project> | null;
-}
-
 export function NewProjectSheet({
   open,
   onOpenChange,
@@ -135,6 +122,10 @@ export function NewProjectSheet({
   const [managerSearchValue, setManagerSearchValue] = useState("");
   const [managerComboboxOpen, setManagerComboboxOpen] = useState(false);
   const [selectedManagerName, setSelectedManagerName] = useState<string>("");
+
+  // Edit confirmation states
+  const [isConfirmEditOpen, setIsConfirmEditOpen] = useState(false);
+  const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
@@ -179,34 +170,41 @@ export function NewProjectSheet({
     fetchDepartments();
   }, [open, user?.orgId]);
 
-  // Fetch managers with search filtering
+  // Fetch all users in organization (informational project managers)
   useEffect(() => {
     if (!open || !user?.orgId) return;
-
-    // Only fetch if user has entered a search term
-    if (!managerSearchValue.trim()) {
-      setManagers([]);
-      return;
-    }
 
     const fetchManagers = async () => {
       setIsLoadingManagers(true);
       try {
         const params: Record<string, string | number> = {
           orgId: user.orgId || "",
-          q: managerSearchValue.trim(),
+          limit: 1000,
         };
+        if (managerSearchValue.trim()) {
+          params.q = managerSearchValue.trim();
+        }
 
-        const response = await apiClient.get(API_PATHS.MANAGERS, {
+        const response = await apiClient.get(API_PATHS.EMPLOYEES, {
           params,
         });
 
-        const managerList = Array.isArray(response.data)
+        const responseData = Array.isArray(response.data)
           ? response.data
           : response.data?.data || [];
+        const items = Array.isArray(responseData)
+          ? responseData
+          : responseData.data || [];
+
+        const managerList = items.map((item: any) => ({
+          id: item.id,
+          name: item.name || item.email?.split("@")[0] || "Unknown User",
+          email: item.email || "",
+        }));
+
         setManagers(managerList);
       } catch (error: any) {
-        console.error("Error fetching managers:", error);
+        console.error("Error fetching employees for project manager:", error);
         setManagers([]);
       } finally {
         setIsLoadingManagers(false);
@@ -231,8 +229,8 @@ export function NewProjectSheet({
         endDate: initialProject.endDate ? new Date(initialProject.endDate as string) : undefined,
         budgetAmount:
           (initialProject.budgetAmountMinor as any) !== undefined
-            ? (initialProject.budgetAmountMinor as any)
-            : (initialProject.budgetAmount as any) || 0,
+            ? Number(initialProject.budgetAmountMinor)
+            : Number(initialProject.budgetAmount) || 0,
         slackChannelId: (initialProject as any).slackChannelId || "",
         discordChannelId: (initialProject as any).discordChannelId || "",
       });
@@ -255,6 +253,17 @@ export function NewProjectSheet({
   }, [open, initialProject]);
 
   const isEditing = initialProject?.id !== undefined && initialProject?.id !== null;
+  const initialStatus = initialProject?.status?.toLowerCase();
+  const statusOptions: Array<{ value: string; label: string }> = [...PROJECT_STATUS_OPTIONS];
+  if (
+    initialStatus &&
+    !PROJECT_STATUS_OPTIONS.some((option) => option.value === initialStatus)
+  ) {
+    statusOptions.push({
+      value: initialStatus,
+      label: initialStatus.charAt(0).toUpperCase() + initialStatus.slice(1),
+    });
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user?.orgId) {
@@ -262,11 +271,20 @@ export function NewProjectSheet({
       return;
     }
 
+    if (isEditing) {
+      setPendingValues(values);
+      setIsConfirmEditOpen(true);
+    } else {
+      await executeSubmit(values);
+    }
+  }
+
+  async function executeSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
 
     try {
       const payload = {
-        orgId: user.orgId,
+        orgId: user!.orgId,
         name: values.name,
         code: values.name ? String(values.name).trim().slice(0, 50) : undefined,
         status: values.status,
@@ -300,6 +318,8 @@ export function NewProjectSheet({
         });
 
         form.reset();
+        setIsConfirmEditOpen(false);
+        setPendingValues(null);
         onOpenChange(false);
         if (onSuccess) onSuccess();
       }
@@ -354,7 +374,7 @@ export function NewProjectSheet({
                       <FormLabel>Status</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -362,7 +382,7 @@ export function NewProjectSheet({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {PROJECT_STATUS_OPTIONS.map((option) => (
+                          {statusOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -457,8 +477,8 @@ export function NewProjectSheet({
                                 {isLoadingManagers
                                   ? "Loading..."
                                   : managerSearchValue.trim()
-                                  ? "No managers found."
-                                  : "Type to search managers..."}
+                                  ? "No users found."
+                                  : "Type to search users..."}
                               </CommandEmpty>
                               <CommandGroup>
                                 {managers.map((manager) => (
@@ -507,7 +527,7 @@ export function NewProjectSheet({
                       <FormControl>
                         <Input
                           type="number"
-                          placeholder="Enter budget amount in paise"
+                          placeholder="Enter budget amount in INR"
                           {...field}
                           onChange={(e) =>
                             field.onChange(parseInt(e.target.value) || 0)
@@ -576,6 +596,35 @@ export function NewProjectSheet({
             {isSubmitting ? (isEditing ? "Saving..." : "Creating...") : isEditing ? "Save Changes" : "Create Project"}
           </Button>
         </SheetFooter>
+
+        <Dialog open={isConfirmEditOpen} onOpenChange={setIsConfirmEditOpen}>
+          <DialogContent className="sm:max-w-[420px] rounded-base border-2 border-border shadow-shadow bg-background text-foreground z-[100]">
+            <DialogHeader>
+              <DialogTitle>Confirm Project Changes</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to save the modifications to this project?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button
+                variant="neutral"
+                onClick={() => {
+                  setIsConfirmEditOpen(false);
+                  setPendingValues(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => pendingValues && executeSubmit(pendingValues)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
    );

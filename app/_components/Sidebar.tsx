@@ -13,7 +13,8 @@ import {
   LogOut,
   Target,
   TreePalm,
-
+  Settings,
+  Network,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -90,11 +91,11 @@ const navLinks: NavItem[] = [
     icon: CalendarSync,
   },
   {
-    title: "Project Management",
-    url: "/projects",
-    icon: FolderKanban,
-    requiredRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER],
+    title: "Team Structure",
+    url: "/team-structure",
+    icon: Network,
   },
+
   // {
   //   title: "Employee Database",
   //   url: "/employees",
@@ -102,7 +103,14 @@ const navLinks: NavItem[] = [
   // },
 ];
 
-const adminLinks: NavItem[] = [];
+const adminLinks: NavItem[] = [
+  {
+    title: "Configurations",
+    url: "/configurations",
+    icon: Settings,
+    requiredRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+  },
+];
 
 const ICON_SIZE = { width: 16, height: 16 };
 
@@ -129,7 +137,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-border bg-background"
+      className="border-r border-border bg-background overflow-x-hidden"
       {...props}
     >
       {/* Logo / Brand */}
@@ -158,7 +166,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-2">
-        <SidebarGroup className="p-0">
+        <SidebarGroup className="p-0 border-b-0">
           <SidebarMenu className="gap-0.5">
             {filteredNavLinks.map((item) =>
               item.items && item.items.length > 0 ? (
@@ -269,119 +277,115 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
 
-        {filteredAdminLinks.length > 0 && (
-          <SidebarGroup className="p-0 mt-4">
-            <p className="px-2 mb-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Admin
-            </p>
-            <SidebarMenu className="gap-0.5">
-              {filteredAdminLinks.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.url}
-                    tooltip={item.title}
-                    className={cn(
-                      "rounded-[4px] h-9 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
-                      pathname === item.url &&
-                        "bg-secondary-background font-medium text-foreground"
-                    )}
-                  >
-                    <Link href={item.url}>
-                      {item.icon && <item.icon style={ICON_SIZE} />}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+        {/* Bottom Section (Configurations and User Profile */}
+        {((filteredAdminLinks.length > 0) || user) && (
+          <SidebarGroup className="p-0 border-t border-border pt-3 mt-auto pb-4">
+            <SidebarMenu className="gap-1.5">
+              {/* Configurations */}
+              {filteredAdminLinks.length > 0 &&
+                filteredAdminLinks.map((item) => {
+                  const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.title}
+                        className={cn(
+                          "rounded-[4px] h-9 px-2 text-sm text-muted-foreground hover:bg-secondary-background hover:text-foreground",
+                          isActive &&
+                            "bg-secondary-background font-medium text-foreground"
+                        )}
+                      >
+                        <Link href={item.url}>
+                          {item.icon && <item.icon style={ICON_SIZE} />}
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+
+              {/* User Profile */}
+              {user && (
+                <SidebarMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton
+                        className="rounded-[4px] h-11 px-2 hover:bg-secondary-background w-full items-center"
+                        size="default"
+                      >
+                        <Avatar className="h-8 w-8 flex-shrink-0">
+                          <AvatarImage
+                            src={user?.avatarUrl || ""}
+                            alt={user?.name || "User"}
+                          />
+                          <AvatarFallback className="text-xs bg-secondary-background text-foreground font-medium">
+                            {userInitials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-1 flex-col justify-center min-w-0 group-data-[collapsible=icon]:hidden ml-2 text-left">
+                          <span className="truncate text-sm text-foreground font-medium leading-tight mb-0.5">
+                            {user?.email || ""}
+                          </span>
+                          <span className="truncate text-xs text-muted-foreground leading-tight">
+                            {userRoleLabel}
+                          </span>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-1 group-data-[collapsible=icon]:hidden" />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      className="w-56 rounded-[4px] border border-border shadow-sm bg-background"
+                      side={isMobile ? "bottom" : "right"}
+                      align="end"
+                      sideOffset={4}
+                    >
+                      <div className="flex items-start gap-2 px-3 py-1.5 border-b border-border">
+                        <Avatar className="h-7 w-7 mt-0.5">
+                          <AvatarImage
+                            src={user?.avatarUrl || ""}
+                            alt={user?.name || "User"}
+                          />
+                          <AvatarFallback className="text-xs bg-secondary-background text-foreground">
+                            {userInitials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {user?.name || "User"}
+                          </p>
+                          <div className="mt-0.5 flex flex-col gap-0.5 min-w-0">
+                            <Badge
+                              variant="neutral"
+                              className="h-5 w-fit shrink-0 rounded-full border-border/60 bg-secondary-background px-2 text-[10px] font-medium uppercase tracking-wide text-foreground"
+                            >
+                              {userRoleLabel}
+                            </Badge>
+                            <p className="min-w-0 text-xs text-muted-foreground truncate">
+                              {user?.email || ""}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <DropdownMenuItem
+                        onClick={logout}
+                        className="text-sm text-foreground rounded-[4px] bg-secondary-background hover:bg-foreground hover:text-background cursor-pointer mx-1 my-1"
+                      >
+                        <LogOut
+                          style={{ width: 14, height: 14 }}
+                          className="text-muted-foreground"
+                        />
+                        Log out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </SidebarMenuItem>
-              ))}
+              )}
             </SidebarMenu>
           </SidebarGroup>
         )}
       </SidebarContent>
-
-      {/* User Footer */}
-      <SidebarFooter className="border-t border-border px-2 py-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  className="rounded-[4px] min-h-[4.5rem] h-auto px-2 py-2 hover:bg-secondary-background w-full items-start"
-                  size="lg"
-                >
-                  <Avatar className="h-6 w-6 flex-shrink-0 mt-0.5">
-                    <AvatarImage
-                      src={user?.avatarUrl || ""}
-                      alt={user?.name || "User"}
-                    />
-                    <AvatarFallback className="text-xs bg-secondary-background text-foreground font-medium">
-                      {userInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-1 flex-col items-start gap-1 text-left min-w-0 group-data-[collapsible=icon]:hidden">
-                    <span className="truncate text-sm font-medium text-foreground">
-                      {user?.name || "User"}
-                    </span>
-                    <Badge
-                      variant="neutral"
-                      className="h-5 w-fit shrink-0 rounded-full border-border/60 bg-secondary-background px-2 text-[10px] font-medium uppercase tracking-wide text-foreground"
-                    >
-                      {userRoleLabel}
-                    </Badge>
-                    <span className="min-w-0 truncate text-xs text-muted-foreground">
-                      {user?.email || ""}
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-56 rounded-[4px] border border-border shadow-sm bg-background"
-                side={isMobile ? "bottom" : "right"}
-                align="end"
-                sideOffset={4}
-              >
-                <div className="flex items-start gap-2 px-3 py-1.5 border-b border-border">
-                  <Avatar className="h-7 w-7 mt-0.5">
-                    <AvatarImage
-                      src={user?.avatarUrl || ""}
-                      alt={user?.name || "User"}
-                    />
-                    <AvatarFallback className="text-xs bg-secondary-background text-foreground">
-                      {userInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {user?.name || "User"}
-                    </p>
-                    <div className="mt-0.5 flex flex-col gap-0.5 min-w-0">
-                      <Badge
-                        variant="neutral"
-                        className="h-5 w-fit shrink-0 rounded-full border-border/60 bg-secondary-background px-2 text-[10px] font-medium uppercase tracking-wide text-foreground"
-                      >
-                        {userRoleLabel}
-                      </Badge>
-                      <p className="min-w-0 text-xs text-muted-foreground truncate">
-                        {user?.email || ""}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="text-sm text-foreground rounded-[4px] bg-secondary-background hover:bg-foreground hover:text-background cursor-pointer mx-1 my-1"
-                >
-                  <LogOut
-                    style={{ width: 14, height: 14 }}
-                    className="text-muted-foreground"
-                  />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

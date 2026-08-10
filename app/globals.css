@@ -268,3 +268,26 @@ input[data-slot="input"][type="number"] {
   --table-row-bg: #d9eee2;
   --table-row-hover-bg: #d9eee2;
 }
+
+@utility custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+  }
+}

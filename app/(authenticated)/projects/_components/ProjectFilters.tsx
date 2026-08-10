@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { ProjectFiltersProps } from "@/lib/project-types";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
@@ -21,16 +22,6 @@ const STATUS_OPTIONS = [
   { value: "on_hold", label: "On_hold" },
    { value: "completed", label: "Completed" },
 ];
-
-interface ProjectFiltersProps {
-  statusFilter: string;
-  onStatusChange: (value: string) => void;
-  searchInput: string;
-  onSearchInputChange: (value: string) => void;
-  onSearch: () => void;
-  onClearSearch: () => void;
-  onSearchKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-}
 
 export function ProjectFilters({
   statusFilter,
