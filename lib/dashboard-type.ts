@@ -32,6 +32,7 @@ export interface DayData {
   isWeekend: boolean;
   isHoliday: boolean;
   holidayName?: string;
+  isLifeline?: boolean;
   timesheet: {
     id: number;
     state: string;
@@ -83,6 +84,7 @@ export interface TimesheetRow {
   isWeekend: boolean;
   isHoliday: boolean;
   holidayName?: string;
+  isLifeline?: boolean;
   leaveStatus?: "approved" | "pending" | "rejected";
   timesheetState?: string;
   entryId?: number | string;

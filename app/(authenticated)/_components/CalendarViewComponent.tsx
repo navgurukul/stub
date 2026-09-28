@@ -134,15 +134,7 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
       const leaveEntries = day.leaves?.entries ?? [];
       const totalHours =
         timesheetEntries.reduce((s, e) => s + e.hours, 0);
-      const lifelineUsed = (() => {
-        const submittedAt = (day.timesheet as any)?.submittedAt;
-        if (!submittedAt) return false;
-
-        const submittedDate = parseISO(submittedAt);
-        if (!isValid(submittedDate)) return false;
-
-        return format(submittedDate, "yyyy-MM-dd") > day.date;
-      })();
+      const lifelineUsed = Boolean(day.isLifeline);
 
       let status:
         | "off"
@@ -251,193 +243,195 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
               {/* Week Days Grid */}
               <div className="px-2 py-2">
                 <div className="grid grid-cols-7 gap-2">
-                {fullWeek.map((day, dayIndex) => {
-                  if (day === null) {
-                    const cellDate = new Date(weekStartMonday);
-                    cellDate.setDate(cellDate.getDate() + weekIndex * 7 + dayIndex);
+                  {fullWeek.map((day, dayIndex) => {
+                    if (day === null) {
+                      const cellDate = new Date(weekStartMonday);
+                      cellDate.setDate(cellDate.getDate() + weekIndex * 7 + dayIndex);
+
+                      return (
+                        <div
+                          key={`blank-${weekIndex}-${dayIndex}`}
+                          className="min-h-[110px] p-2.5 rounded-[4px]"
+                          style={{
+                            backgroundColor: "var(--background)",
+                            borderColor: "var(--border)",
+                            borderWidth: "1px",
+                            borderStyle: "solid",
+                          }}
+                        >
+                          <div className="flex items-start justify-between mb-1.5">
+                            <div className="flex flex-col">
+                              <span
+                                className="text-lg font-semibold leading-none"
+                                style={{ color: "var(--muted)" }}
+                              >
+                                {format(cellDate, "dd")}
+                              </span>
+                              <span
+                                className="text-xs uppercase mt-0.5"
+                                style={{ color: "var(--muted)" }}
+                              >
+                                {format(cellDate, "EEE")}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const dayData = getDayCardData(day);
+                    // Determine cell background
+                    let cellBg = "var(--background)";
+                    if (dayData.isHoliday)
+                      cellBg = "#ddeee6";
+                    else if (dayData.isSunday || dayData.is2ndOr4thSaturday)
+                      cellBg = "var(--secondary-background)";
+                    else if (dayData.isUnfilled)
+                      cellBg = "#ede4c8";
+                    else if (dayData.status === "rejected")
+                      cellBg = "#eddcdc";
+                    else if (dayData.status === "pending")
+                      cellBg = "#ece6cc";
+
+                    let accentShadow = "";
+                    if (dayData.isHoliday)
+                      accentShadow = "inset 3px 0 0 #5a8a6a";
+                    else if (dayData.isUnfilled)
+                      accentShadow = "inset 3px 0 0 #b89848";
+                    else if (dayData.status === "rejected")
+                      accentShadow = "inset 3px 0 0 #a05858";
+                    else if (dayData.status === "pending")
+                      accentShadow = "inset 3px 0 0 #8a7838";
+
+                    const boxShadow = accentShadow || undefined;
 
                     return (
                       <div
-                        key={`blank-${weekIndex}-${dayIndex}`}
-                        className="min-h-[110px] p-2.5 rounded-[4px]"
+                        key={dayData.day.date}
+                        className={`min-h-[110px] p-2.5 relative cursor-pointer hover:brightness-[0.97] transition-all rounded-[4px]${dayData.isToday ? " today-cell" : ""}`}
                         style={{
-                          backgroundColor: "var(--background)",
+                          backgroundColor: cellBg,
                           borderColor: "var(--border)",
                           borderWidth: "1px",
                           borderStyle: "solid",
+                          boxShadow,
+                        }}
+                        onClick={() => {
+                          setSelectedDay(dayData.day);
+                          setIsDaySheetOpen(true);
                         }}
                       >
+                        {/* Day Header */}
                         <div className="flex items-start justify-between mb-1.5">
                           <div className="flex flex-col">
                             <span
                               className="text-lg font-semibold leading-none"
-                              style={{ color: "var(--muted)" }}
+                              style={{
+                                color: "var(--foreground)",
+                              }}
                             >
-                              {format(cellDate, "dd")}
+                              {dayData.displayDate}
                             </span>
                             <span
                               className="text-xs uppercase mt-0.5"
                               style={{ color: "var(--muted)" }}
                             >
-                              {format(cellDate, "EEE")}
+                              {dayData.dayShort}
                             </span>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const dayData = getDayCardData(day);
-                  // Determine cell background
-                  let cellBg = "var(--background)";
-                  if (dayData.isHoliday)
-                    cellBg = "#ddeee6";
-                  else if (dayData.isSunday || dayData.is2ndOr4thSaturday)
-                    cellBg = "var(--secondary-background)";
-                  else if (dayData.isUnfilled)
-                    cellBg = "#ede4c8";
-                  else if (dayData.status === "rejected")
-                    cellBg = "#eddcdc";
-                  else if (dayData.status === "pending")
-                    cellBg = "#ece6cc";
-
-                  let accentShadow = "";
-                  if (dayData.isHoliday)
-                    accentShadow = "inset 3px 0 0 #5a8a6a";
-                  else if (dayData.isUnfilled)
-                    accentShadow = "inset 3px 0 0 #b89848";
-                  else if (dayData.status === "rejected")
-                    accentShadow = "inset 3px 0 0 #a05858";
-                  else if (dayData.status === "pending")
-                    accentShadow = "inset 3px 0 0 #8a7838";
-
-                  const boxShadow = accentShadow || undefined;
-
-                  return (
-                    <div
-                      key={dayData.day.date}
-                      className={`min-h-[110px] p-2.5 relative cursor-pointer hover:brightness-[0.97] transition-all rounded-[4px]${dayData.isToday ? " today-cell" : ""}`}
-                      style={{
-                        backgroundColor: cellBg,
-                        borderColor: "var(--border)",
-                        borderWidth: "1px",
-                        borderStyle: "solid",
-                        boxShadow,
-                      }}
-                      onClick={() => {
-                        setSelectedDay(dayData.day);
-                        setIsDaySheetOpen(true);
-                      }}
-                    >
-                      {/* Day Header */}
-                      <div className="flex items-start justify-between mb-1.5">
-                        <div className="flex flex-col">
-                          <span
-                            className="text-lg font-semibold leading-none"
-                            style={{
-                              color: "var(--foreground)",
-                            }}
-                          >
-                            {dayData.displayDate}
-                          </span>
-                          <span
-                            className="text-xs uppercase mt-0.5"
-                            style={{ color: "var(--muted)" }}
-                          >
-                            {dayData.dayShort}
-                          </span>
-                        </div>
-                        {dayData.lifelineUsed && (
                           <div className="flex items-center gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="inline-flex h-4 w-4 items-center justify-center text-amber-600 hover:text-amber-700"
-                                    aria-label="Lifeline used"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                    }}
-                                  >
-                                    <AlertTriangle className="h-3 w-3" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <div className="text-xs whitespace-nowrap">
-                                    Lifeline used
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <span
-                              className="text-xs font-semibold px-1.5 py-0.5 rounded-[3px]"
+                            {dayData.lifelineUsed && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-4 w-4 items-center justify-center text-amber-600 hover:text-amber-700"
+                                      aria-label="Lifeline used"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                      }}
+                                    >
+                                      <AlertTriangle className="h-3 w-3" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <div className="text-xs whitespace-nowrap">
+                                      Lifeline used
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {dayData.totalHours > 0 && (
+                              <span
+                                className="text-xs font-semibold px-1.5 py-0.5 rounded-[3px]"
+                                style={{
+                                  backgroundColor:
+                                    dayData.status === "rejected"
+                                      ? "#ecdcdc"
+                                      : dayData.status === "pending"
+                                        ? "#ece6cc"
+                                        : dayData.status === "filled"
+                                          ? "#daeae2"
+                                          : "var(--secondary-background)",
+                                  color:
+                                    dayData.status === "rejected"
+                                      ? "#803838"
+                                      : dayData.status === "pending"
+                                        ? "#786020"
+                                        : dayData.status === "filled"
+                                          ? "#386050"
+                                          : "var(--foreground)",
+                                }}
+                              >
+                                {dayData.totalHours}h
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Day Content */}
+                        <div className="space-y-0.5">
+                          {/* Off day indicator */}
+                          {dayData.isOff && (
+                            <div
+                              className="text-xs font-medium"
                               style={{
-                                backgroundColor:
-                                  dayData.status === "rejected"
-                                    ? "#ecdcdc"
-                                    : dayData.status === "pending"
-                                      ? "#ece6cc"
-                                      : dayData.status === "filled"
-                                        ? "#daeae2"
-                                        : "var(--secondary-background)",
-                                color:
-                                  dayData.status === "rejected"
-                                    ? "#803838"
-                                    : dayData.status === "pending"
-                                      ? "#786020"
-                                      : dayData.status === "filled"
-                                        ? "#386050"
-                                        : "var(--foreground)",
+                                color: dayData.isHoliday
+                                  ? "#3a6a4a"
+                                  : "var(--muted)",
                               }}
                             >
-                              {dayData.totalHours}h
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Day Content */}
-                      <div className="space-y-0.5">
-                        {/* Off day indicator */}
-                        {dayData.isOff && (
-                          <div
-                            className="text-xs font-medium"
-                            style={{
-                              color: dayData.isHoliday
-                                ? "#3a6a4a"
-                                : "var(--muted)",
-                            }}
-                          >
-                            {dayData.isHoliday
-                              ? "Holiday"
-                              : dayData.isSunday
-                                ? "Sunday"
-                                : "Off"}
-                          </div>
-                        )}
-
-                        {/* Holiday name */}
-                        {dayData.isHoliday &&
-                          dayData.holidayName && (
-                            <div
-                              className="text-xs truncate"
-                              style={{ color: "#3a6a4a" }}
-                            >
-                              {dayData.holidayName}
+                              {dayData.isHoliday
+                                ? "Holiday"
+                                : dayData.isSunday
+                                  ? "Sunday"
+                                  : "Off"}
                             </div>
                           )}
 
-                        {/* Timesheet entries */}
-                        {dayData.timesheetEntries.length >
-                          0 && (
-                            <div className="space-y-1">
-                              {dayData.timesheetEntries.map(
-                                (entry, i) => (
-                                  <div
-                                    key={i}
-                                    className="text-xs truncate flex items-center gap-1"
-                                  >
+                          {/* Holiday name */}
+                          {dayData.isHoliday &&
+                            dayData.holidayName && (
+                              <div
+                                className="text-xs truncate"
+                                style={{ color: "#3a6a4a" }}
+                              >
+                                {dayData.holidayName}
+                              </div>
+                            )}
+
+                          {/* Timesheet entries */}
+                          {dayData.timesheetEntries.length >
+                            0 && (
+                              <div className="space-y-1">
+                                {dayData.timesheetEntries.map(
+                                  (entry, i) => (
+                                    <div
+                                      key={i}
+                                      className="text-xs truncate flex items-center gap-1"
+                                    >
                                       <span
                                         className="font-medium truncate"
                                         style={{
@@ -467,63 +461,63 @@ export const CalendarViewComponent: React.FC<CalendarViewComponentProps> = ({
                                             ×
                                           </span>
                                         )}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
+
+                          {/* Leave entries */}
+                          {dayData.leaveEntries.length > 0 && (
+                            <div className="space-y-1">
+                              {dayData.leaveEntries.map(
+                                (entry: any, i) => (
+                                  <div
+                                    key={i}
+                                    className="text-xs truncate flex items-center gap-1"
+                                  >
+                                    <span
+                                      className="font-medium truncate"
+                                      style={{
+                                        color:
+                                          "var(--foreground)",
+                                      }}
+                                    >
+                                      {`${entry.leaveType.name} - ${getLeaveDurationLabel(entry)} (${getLeaveStatusLabel(entry.state)})`}
+                                    </span>
+                                    {entry.state ===
+                                      "pending" && (
+                                        <span
+                                          className="flex-shrink-0"
+                                          style={{
+                                            color: "#806020",
+                                          }}
+                                        >
+                                          ○
+                                        </span>
+                                      )}
+                                    {entry.state ===
+                                      "rejected" && (
+                                        <span
+                                          className="flex-shrink-0"
+                                          style={{
+                                            color: "#903030",
+                                          }}
+                                        >
+                                          ×
+                                        </span>
+                                      )}
                                   </div>
                                 )
                               )}
                             </div>
                           )}
 
-                        {/* Leave entries */}
-                        {dayData.leaveEntries.length > 0 && (
-                          <div className="space-y-1">
-                            {dayData.leaveEntries.map(
-                              (entry: any, i) => (
-                                <div
-                                  key={i}
-                                  className="text-xs truncate flex items-center gap-1"
-                                >
-                                  <span
-                                    className="font-medium truncate"
-                                    style={{
-                                      color:
-                                        "var(--foreground)",
-                                    }}
-                                  >
-                                    {`${entry.leaveType.name} - ${getLeaveDurationLabel(entry)} (${getLeaveStatusLabel(entry.state)})`}
-                                  </span>
-                                  {entry.state ===
-                                    "pending" && (
-                                      <span
-                                        className="flex-shrink-0"
-                                        style={{
-                                          color: "#806020",
-                                        }}
-                                      >
-                                        ○
-                                      </span>
-                                    )}
-                                  {entry.state ===
-                                    "rejected" && (
-                                      <span
-                                        className="flex-shrink-0"
-                                        style={{
-                                          color: "#903030",
-                                        }}
-                                      >
-                                        ×
-                                      </span>
-                                    )}
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           );

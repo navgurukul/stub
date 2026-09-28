@@ -18,7 +18,6 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import {
   cn,
@@ -1148,6 +1147,7 @@ export default function DashboardPage() {
             isLeave: false,
             isWeekend: isWeekendOff,
             isHoliday: day.isHoliday,
+            isLifeline: day.isLifeline,
             timesheetState: day.timesheet?.state,
             entryId: (entry as any).id ?? (entry as any).entryId ?? undefined,
             projectId: (entry as any).projectId,
@@ -2005,7 +2005,7 @@ export default function DashboardPage() {
                 unit: "",
                 sub: "",
                 tooltip:
-                "You are expected to submit timesheets daily. Lifelines allow you to add missed entries for up to 3 past working days. You can use up to 3 lifelines per cycle. This card shows how many lifelines you have remaining in the current cycle.",
+                  "You are expected to submit timesheets daily. Lifelines allow you to add missed entries for up to 3 past working days. You can use up to 3 lifelines per cycle. This card shows how many lifelines you have remaining in the current cycle.",
                 accent: Number(resolvedBackfill?.remaining ?? 0) > 0 ? "border-l-emerald-400" : "border-l-amber-400",
               },
               {

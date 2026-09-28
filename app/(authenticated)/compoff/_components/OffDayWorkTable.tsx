@@ -136,10 +136,10 @@ export function OffDayWorkTable({
             <TableRow className="offday-table-head">
               {showEmployee && <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Employee</TableHead>}
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Work Date</TableHead>
+              <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Expiry Date</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Holiday</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Duration</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Timesheet</TableHead>
-              <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Credited</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Availed On</TableHead>
               <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-inherit">Status</TableHead>
             </TableRow>
@@ -176,10 +176,10 @@ export function OffDayWorkTable({
                       </TableCell>
                     )}
                     <TableCell className="px-4 py-3.5 whitespace-nowrap text-foreground">{row.workDate}</TableCell>
+                    <TableCell className="px-4 py-3.5 whitespace-nowrap text-foreground">{row.expiresOn}</TableCell>
                     <TableCell className="px-4 py-3.5 text-foreground">{row.holidayType}</TableCell>
                     <TableCell className="px-4 py-3.5 text-foreground">{row.rmRequest}</TableCell>
                     <TableCell className="px-4 py-3.5 text-foreground">{row.timesheet}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-foreground">{row.credited}</TableCell>
                     <TableCell className="px-4 py-3.5 text-foreground">{row.availedOn ?? "—"}</TableCell>
                     <TableCell className="px-4 py-3.5">
                       <span className={meta.className}>{meta.label}</span>
