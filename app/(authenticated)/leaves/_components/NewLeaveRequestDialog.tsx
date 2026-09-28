@@ -59,6 +59,19 @@ import {
   NewLeaveRequestDialogProps,
 } from "@/lib/leave-types";
 
+const getFileSizeError = (file: File): string | null => {
+  const isPdf =
+    file.type === "application/pdf" ||
+    file.name.toLowerCase().endsWith(".pdf");
+  if (isPdf && file.size >= 1 * 1024 * 1024) {
+    return "File size must not exceed 1MB.";
+  }
+  if (!isPdf && file.size > 2 * 1024 * 1024) {
+    return "File size must not exceed 2MB.";
+  }
+  return null;
+};
+
 const formSchema = z
   .object({
     employeeEmail: z.string().email(),
@@ -155,12 +168,15 @@ const formSchema = z
           message: "Wedding card invitation is required.",
           path: ["weddingCardImage"],
         });
-      } else if (data.weddingCardImage instanceof File && data.weddingCardImage.size > 2 * 1024 * 1024) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "File size must not exceed 2MB.",
-          path: ["weddingCardImage"],
-        });
+      } else if (data.weddingCardImage instanceof File) {
+        const err = getFileSizeError(data.weddingCardImage);
+        if (err) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: err,
+            path: ["weddingCardImage"],
+          });
+        }
       }
     }
 
@@ -172,12 +188,15 @@ const formSchema = z
           message: "Voter ID card is required.",
           path: ["voterIdImage"],
         });
-      } else if (data.voterIdImage instanceof File && data.voterIdImage.size > 2 * 1024 * 1024) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "File size must not exceed 2MB.",
-          path: ["voterIdImage"],
-        });
+      } else if (data.voterIdImage instanceof File) {
+        const err = getFileSizeError(data.voterIdImage);
+        if (err) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: err,
+            path: ["voterIdImage"],
+          });
+        }
       }
     }
 
@@ -198,12 +217,15 @@ const formSchema = z
           message: "Hall ticket or exam schedule image is required.",
           path: ["examHallTicket"],
         });
-      } else if (data.examHallTicket instanceof File && data.examHallTicket.size > 2 * 1024 * 1024) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "File size must not exceed 2MB.",
-          path: ["examHallTicket"],
-        });
+      } else if (data.examHallTicket instanceof File) {
+        const err = getFileSizeError(data.examHallTicket);
+        if (err) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: err,
+            path: ["examHallTicket"],
+          });
+        }
       }
     }
 
@@ -224,13 +246,16 @@ const formSchema = z
           });
         }
         for (const file of data.vipassanaDocuments) {
-          if (file instanceof File && file.size > 2 * 1024 * 1024) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "File size must not exceed 2MB.",
-              path: ["vipassanaDocuments"],
-            });
-            break;
+          if (file instanceof File) {
+            const err = getFileSizeError(file);
+            if (err) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: err,
+                path: ["vipassanaDocuments"],
+              });
+              break;
+            }
           }
         }
       }
