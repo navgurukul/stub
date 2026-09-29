@@ -1286,3 +1286,4 @@ export function NewLeaveRequestDialog({
     </Dialog>
   );
 }
+
