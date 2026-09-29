@@ -411,127 +411,41 @@ export function NewLeaveRequestDialog({
     if (!open) return;
     let isMounted = true;
     async function fetchLeaveTypes() {
-      let balances: RawLeaveBalance[] = [];
-      let types: RawLeaveType[] = [];
-
       try {
         const res = await apiClient.get(API_PATHS.LEAVES_BALANCES);
-        balances = Array.isArray(res.data?.balances)
+        const rawBalances: RawLeaveBalance[] = Array.isArray(res.data?.balances)
           ? res.data.balances
           : Array.isArray(res.data)
             ? res.data
             : [];
-      } catch (error) {
-        console.error("Error fetching leave balances:", error);
-      }
 
-      try {
-        const res2 = await apiClient.get(API_PATHS.LEAVES_TYPES);
-        types = Array.isArray(res2.data) ? res2.data : [];
-      } catch (error) {
-        console.error("Error fetching leave types:", error);
-      }
+        const list: LeaveTypeWithBalance[] = [];
+        const seenCodes = new Set<string>();
 
-      const mergedList: LeaveTypeWithBalance[] = [];
-      const seenCodes = new Set<string>();
+        rawBalances.forEach((b: RawLeaveBalance) => {
+          const lt = b.leaveType || ({} as RawLeaveType);
+          const code = (lt.code || "").toLowerCase().trim();
 
-      // 1. Process active balances with balanceHours > 0
-      balances.forEach((b: RawLeaveBalance) => {
-        const lt = b.leaveType || ({} as RawLeaveType);
-        const code = (lt.code || "").toLowerCase().trim();
-        if (code && (b.balanceHours ?? 0) > 0) {
-          seenCodes.add(code);
-          mergedList.push({
-            id: lt.id ?? b.leaveTypeId,
-            code: lt.code,
-            name: lt.name,
-            paid: lt.paid ?? true,
-            requiresApproval: lt.requiresApproval ?? true,
-            description: lt.description,
-            maxPerRequestHours: lt.maxPerRequestHours,
-            balanceHours: b.balanceHours ?? 0,
-          });
-        }
-      });
-
-      // 2. Ensure each of the 4 new leave types is in the list
-      const targets = [
-        { code: "maternity", name: "Maternity Leave", fallbackId: 101 },
-        { code: "parental", name: "Parental Leave", fallbackId: 102 },
-        { code: "srs", name: "SRS Leave", fallbackId: 103 },
-        { code: "adoption", name: "Adoption Leave", fallbackId: 104 },
-      ];
-
-      targets.forEach((target) => {
-        // Check if already added via balances
-        const isAlreadyAdded = Array.from(seenCodes).some(
-          (c) => c === target.code || c.includes(target.code)
-        ) || mergedList.some(
-          (lt) => lt.name.toLowerCase().trim() === target.name.toLowerCase().trim()
-        );
-
-        if (!isAlreadyAdded) {
-          // Find in types (fetched from /v1/leaves/types)
-          const apiType = types.find(
-            (t: RawLeaveType) =>
-              (t.code || "").toLowerCase().trim() === target.code ||
-              (t.name || "").toLowerCase().trim() === target.name.toLowerCase().trim()
-          );
-
-          // Find in balances even if balanceHours <= 0
-          const apiBalance = balances.find((b: RawLeaveBalance) => {
-            const lt = b.leaveType || ({} as RawLeaveType);
-            return (
-              (lt.code || "").toLowerCase().trim() === target.code ||
-              (lt.name || "").toLowerCase().trim() === target.name.toLowerCase().trim()
-            );
-          });
-
-          const balanceHours = apiBalance ? (apiBalance.balanceHours ?? 0) : 0;
-
-          if (apiType) {
-            mergedList.push({
-              id: apiType.id,
-              code: apiType.code,
-              name: apiType.name,
-              paid: apiType.paid ?? true,
-              requiresApproval: apiType.requiresApproval ?? true,
-              description: apiType.description,
-              maxPerRequestHours: apiType.maxPerRequestHours,
-              balanceHours,
-            });
-            seenCodes.add((apiType.code || "").toLowerCase().trim());
-          } else if (apiBalance) {
-            const lt = apiBalance.leaveType || ({} as RawLeaveType);
-            mergedList.push({
-              id: lt.id ?? apiBalance.leaveTypeId,
+          if (code && code !== "cpl" && !seenCodes.has(code)) {
+            seenCodes.add(code);
+            list.push({
+              id: lt.id ?? b.leaveTypeId,
               code: lt.code,
               name: lt.name,
               paid: lt.paid ?? true,
               requiresApproval: lt.requiresApproval ?? true,
               description: lt.description,
               maxPerRequestHours: lt.maxPerRequestHours,
-              balanceHours,
+              balanceHours: b.balanceHours ?? 0,
             });
-            seenCodes.add((lt.code || "").toLowerCase().trim());
-          } else {
-            // Fallback static type definition
-            mergedList.push({
-              id: target.fallbackId,
-              code: target.code,
-              name: target.name,
-              paid: true,
-              requiresApproval: true,
-              description: target.name,
-              balanceHours: 0,
-            });
-            seenCodes.add(target.code);
           }
-        }
-      });
+        });
 
-      if (isMounted) {
-        setLeaveTypes(mergedList);
+        if (isMounted) {
+          setLeaveTypes(list);
+        }
+      } catch (error) {
+        console.error("Error fetching leave balances:", error);
       }
     }
     fetchLeaveTypes();
