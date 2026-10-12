@@ -44,7 +44,7 @@ export function TreeNode({
         </div>
 
         <div className="flex flex-col min-w-0 flex-1 text-left">
-          <span className="font-bold text-zinc-900 dark:text-zinc-50 text-sm leading-snug truncate" title={node.name || node.email || "-"}>
+          <span className="font-bold text-foreground dark:text-foreground text-sm leading-snug truncate" title={node.name || node.email || "-"}>
             {node.name || node.email || "-"}
           </span>
           <span
