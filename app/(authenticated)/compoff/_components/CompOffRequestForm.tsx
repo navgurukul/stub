@@ -487,10 +487,11 @@ export function CompOffRequestForm({ onSuccess, scope = "reportees" }: CompOffRe
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Work Date</FormLabel>
-                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <Popover modal open={calendarOpen} onOpenChange={setCalendarOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
+                          type="button"
                             variant="noShadow"
                             className="w-full justify-start text-left font-normal text-main-foreground
                                 active:bg-gray-200
