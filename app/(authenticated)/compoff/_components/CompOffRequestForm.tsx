@@ -492,7 +492,10 @@ export function CompOffRequestForm({ onSuccess, scope = "reportees" }: CompOffRe
                         <FormControl>
                           <Button
                             variant="noShadow"
-                            className="w-full justify-start text-left font-normal text-main-foreground"
+                            className="w-full justify-start text-left font-normal text-main-foreground
+                                active:bg-gray-200
+    active:scale-[0.98]
+    transition-all"
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {field.value ? (
